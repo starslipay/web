@@ -76,7 +76,7 @@ const handleRegister = async () => {
 
   loading.value = true
   try {
-    await authStore.login({
+    await authStore.register({
       user_id: registerForm.user_id,
       password: registerForm.password,
       name: registerForm.name || undefined,
@@ -88,6 +88,15 @@ const handleRegister = async () => {
       id_type: registerForm.id_type || undefined,
       id_card: registerForm.id_card || undefined,
     })
+    
+    await authStore.login({
+      user_id: registerForm.user_id,
+      password: registerForm.password,
+      business_info: 'web_register',
+    })
+    
+    await authStore.getUserInfo()
+    await authStore.getUserBalance()
     
     showToast('注册成功，正在跳转...', 'success')
     setTimeout(() => {

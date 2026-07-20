@@ -76,6 +76,7 @@ const handleLogin = async () => {
     await authStore.login({
       user_id: loginForm.user_id,
       password: loginForm.password,
+      business_info: 'web_login',
     })
     await authStore.getUserInfo()
     await authStore.getUserBalance()
@@ -210,9 +211,6 @@ const handleLogin = async () => {
             <UserPlus class="w-5 h-5" />
             注册新账户
           </button>
-          <p class="text-center text-gray-500 text-sm mt-4">
-            首次登录将自动创建账户
-          </p>
         </div>
       </div>
     </div>

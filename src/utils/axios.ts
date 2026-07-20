@@ -8,6 +8,19 @@ const instance = axios.create({
   },
 })
 
+instance.interceptors.request.use(
+  (config) => {
+    const userToken = localStorage.getItem('userToken')
+    if (userToken) {
+      config.headers['user-token'] = userToken
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
 instance.interceptors.response.use(
   (response) => response,
   (error) => {
