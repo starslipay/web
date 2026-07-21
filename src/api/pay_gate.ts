@@ -12,6 +12,8 @@ import type {
   GetUserBalanceInfoRsp,
   GetUserTokenReq,
   GetUserTokenRsp,
+  GetUserFlowReq,
+  GetUserFlowRsp,
   C2CTransferPreReq,
   C2CTransferPreRsp,
   C2CTransferDoReq,
@@ -50,6 +52,11 @@ export const payGateApi = {
 
   getUserBalanceInfo: async (req: GetUserBalanceInfoReq): Promise<GetUserBalanceInfoRsp> => {
     const response = await api.post('/api/pay_gate/get_user_balance_info', req)
+    return response.data
+  },
+
+  getUserFlow: async (req: GetUserFlowReq): Promise<GetUserFlowRsp> => {
+    const response = await api.post('/api/pay_gate/get_user_flow', req)
     return response.data
   },
 

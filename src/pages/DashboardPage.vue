@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { LogOut, User, Banknote, ArrowRightLeft, RefreshCw, Wallet, Building, ChevronDown, X, Plus } from 'lucide-vue-next'
+import { LogOut, User, Banknote, ArrowRightLeft, RefreshCw, Wallet, Building, ChevronDown, X, Plus, FileText } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -12,7 +12,8 @@ const refreshing = ref(false)
 const showAccountMenu = ref(false)
 
 const formatBalance = (balance: number) => {
-  return balance.toLocaleString('zh-CN', { minimumFractionDigits: 2 })
+  const yuan = balance / 100
+  return yuan.toLocaleString('zh-CN', { minimumFractionDigits: 2 })
 }
 
 const getCurrencySymbol = (curType: number) => {
@@ -67,6 +68,10 @@ const goToProfile = () => {
   router.push('/profile')
 }
 
+const goToTransactions = () => {
+  router.push('/transactions')
+}
+
 const goToRegister = () => {
   showAccountMenu.value = false
   router.push('/register')
@@ -89,7 +94,7 @@ onMounted(async () => {
     <div class="max-w-4xl mx-auto">
       <header class="flex items-center justify-between mb-8 animate-fade-in">
         <div>
-          <h1 class="text-2xl font-bold text-white">仪表盘</h1>
+          <h1 class="text-2xl font-bold text-white">starslipay</h1>
           <p class="text-blue-100 mt-1">欢迎回来，{{ authStore.userInfo?.name || authStore.userId }}</p>
         </div>
         
@@ -262,15 +267,15 @@ onMounted(async () => {
           </button>
 
           <button
-            @click="refreshData"
+            @click="goToTransactions"
             class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
             style="animation-delay: 0.4s"
           >
             <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <RefreshCw class="w-6 h-6 text-white" />
+              <FileText class="w-6 h-6 text-white" />
             </div>
-            <h3 class="font-semibold text-gray-800">刷新数据</h3>
-            <p class="text-sm text-gray-500 mt-1">更新余额信息</p>
+            <h3 class="font-semibold text-gray-800">交易明细</h3>
+            <p class="text-sm text-gray-500 mt-1">查看交易记录</p>
           </button>
         </div>
 

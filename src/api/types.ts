@@ -1,5 +1,5 @@
-export interface HealthReq {}
-export interface HealthRsp {}
+export interface HealthReq { }
+export interface HealthRsp { }
 
 export interface UpdateUserInfoReq {
   user_id?: string
@@ -69,6 +69,31 @@ export interface GetUserTokenReq {
 export interface GetUserTokenRsp {
   user_id: string
   user_token: string
+}
+
+export interface GetUserFlowReq {
+  user_id?: string
+  offset?: number
+  limit?: number
+}
+
+export interface UserFlow {
+  transaction_id: string
+  user_id: string
+  counterparty_user_id: string
+  inout_type: number
+  biz_type: number
+  amount: number
+  balance: number
+  desc: string
+  create_time: string
+}
+
+export interface GetUserFlowRsp {
+  user_id: string
+  next_offset: number
+  end_flag: number
+  UserFlowList: UserFlow[]
 }
 
 export interface C2CTransferPreReq {

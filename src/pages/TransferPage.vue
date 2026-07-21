@@ -71,6 +71,17 @@ const resetBank2C = () => {
   bank2cForm.password = ''
 }
 
+const formatAmount = (value: string) => {
+  if (!value) return ''
+  const cleaned = value.replace(/[^\d.]/g, '')
+  const parts = cleaned.split('.')
+  if (parts.length > 2) return ''
+  if (parts[1] && parts[1].length > 2) {
+    parts[1] = parts[1].slice(0, 2)
+  }
+  return parts.join('.')
+}
+
 const c2cTransfer = async () => {
   if (!c2cForm.seller_user_id || !c2cForm.amount || !c2cForm.password) {
     showToast('请填写完整的转账信息', 'error')
@@ -81,11 +92,13 @@ const c2cTransfer = async () => {
   try {
     const preResponse = await payGateApi.c2cTransferPre({ buyer_user_id: c2cForm.buyer_user_id })
     
+    const amountInCents = Math.round(parseFloat(c2cForm.amount) * 100)
+    
     const doResponse = await payGateApi.c2cTransferDo({
       transaction_id: preResponse.transaction_id,
       buyer_user_id: c2cForm.buyer_user_id,
       seller_user_id: c2cForm.seller_user_id,
-      amount: parseInt(c2cForm.amount),
+      amount: amountInCents,
       verify_type: c2cForm.verify_type,
       password: c2cForm.password,
     })
@@ -114,11 +127,13 @@ const bank2cTransfer = async () => {
   try {
     const preResponse = await payGateApi.bank2cPre({ user_id: bank2cForm.user_id })
     
+    const amountInCents = Math.round(parseFloat(bank2cForm.amount) * 100)
+    
     const doResponse = await payGateApi.bank2cDo({
       transaction_id: preResponse.transaction_id,
       user_id: bank2cForm.user_id,
       bank_type: bank2cForm.bank_type,
-      amount: parseInt(bank2cForm.amount),
+      amount: amountInCents,
       desc: bank2cForm.desc,
       verify_type: bank2cForm.verify_type,
       password: bank2cForm.password,
@@ -206,9 +221,10 @@ const bank2cTransfer = async () => {
             <label class="label">转账金额</label>
             <input
               v-model="c2cForm.amount"
-              type="number"
+              type="text"
               class="input-field"
-              placeholder="请输入转账金额"
+              placeholder="请输入转账金额（元）"
+              @input="c2cForm.amount = formatAmount(c2cForm.amount)"
             />
           </div>
 
@@ -267,9 +283,10 @@ const bank2cTransfer = async () => {
             <label class="label">充值金额</label>
             <input
               v-model="bank2cForm.amount"
-              type="number"
+              type="text"
               class="input-field"
-              placeholder="请输入充值金额"
+              placeholder="请输入充值金额（元）"
+              @input="bank2cForm.amount = formatAmount(bank2cForm.amount)"
             />
           </div>
 
