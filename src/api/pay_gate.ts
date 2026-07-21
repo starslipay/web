@@ -26,57 +26,46 @@ import type {
 
 export const payGateApi = {
   health: async (req?: HealthReq): Promise<HealthRsp> => {
-    const response = await api.get('/api/pay_gate/health', { params: req })
-    return response.data
+    return api.get('/api/pay_gate/health', { params: req }) as unknown as HealthRsp
   },
 
   regUser: async (req: RegUserReq): Promise<RegUserRsp> => {
-    const response = await api.post('/api/pay_gate/reg_user', req)
-    return response.data
+    return api.post('/api/pay_gate/reg_user', req) as unknown as RegUserRsp
   },
 
   getUserToken: async (req: GetUserTokenReq): Promise<GetUserTokenRsp> => {
-    const response = await api.post('/api/pay_gate/get_user_token', req)
-    return response.data
+    return api.post('/api/pay_gate/get_user_token', req) as unknown as GetUserTokenRsp
   },
 
   updateUserInfo: async (req: UpdateUserInfoReq): Promise<UpdateUserInfoRsp> => {
-    const response = await api.post('/api/pay_gate/update_user_info', req)
-    return response.data
+    return api.post('/api/pay_gate/update_user_info', req) as unknown as UpdateUserInfoRsp
   },
 
   getUserInfo: async (req: GetUserInfoReq): Promise<GetUserInfoRsp> => {
-    const response = await api.post('/api/pay_gate/get_user_info', req)
-    return response.data
+    return api.post('/api/pay_gate/get_user_info', req) as unknown as GetUserInfoRsp
   },
 
   getUserBalanceInfo: async (req: GetUserBalanceInfoReq): Promise<GetUserBalanceInfoRsp> => {
-    const response = await api.post('/api/pay_gate/get_user_balance_info', req)
-    return response.data
+    return api.post('/api/pay_gate/get_user_balance_info', req) as unknown as GetUserBalanceInfoRsp
   },
 
   getUserFlow: async (req: GetUserFlowReq): Promise<GetUserFlowRsp> => {
-    const response = await api.post('/api/pay_gate/get_user_flow', req)
-    return response.data
+    return api.post('/api/pay_gate/get_user_flow', req) as unknown as GetUserFlowRsp
   },
 
   c2cTransferPre: async (req: C2CTransferPreReq): Promise<C2CTransferPreRsp> => {
-    const response = await api.post('/api/pay_gate/c2c_transfer_pre', req)
-    return response.data
+    return api.post('/api/pay_gate/c2c_transfer_pre', req) as unknown as C2CTransferPreRsp
   },
 
   c2cTransferDo: async (req: C2CTransferDoReq): Promise<C2CTransferDoRsp> => {
-    const response = await api.post('/api/pay_gate/c2c_transfer_do', req)
-    return response.data
+    return api.post('/api/pay_gate/c2c_transfer_do', req) as unknown as C2CTransferDoRsp
   },
 
   bank2cPre: async (req: Bank2CPreReq): Promise<Bank2CPreRsp> => {
-    const response = await api.post('/api/pay_gate/bank2c_pre', req)
-    return response.data
+    return api.post('/api/pay_gate/bank2c_pre', req) as unknown as Bank2CPreRsp
   },
 
   bank2cDo: async (req: Bank2CDoReq): Promise<Bank2CDoRsp> => {
-    const response = await api.post('/api/pay_gate/bank2c_do', req)
-    return response.data
+    return api.post('/api/pay_gate/bank2c_do', req) as unknown as Bank2CDoRsp
   },
 }

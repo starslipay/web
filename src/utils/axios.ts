@@ -1,5 +1,11 @@
 import axios from 'axios'
 
+interface ApiResponse<T = any> {
+  code: number
+  msg: string
+  data: T
+}
+
 const instance = axios.create({
   baseURL: '',
   timeout: 10000,
@@ -22,7 +28,15 @@ instance.interceptors.request.use(
 )
 
 instance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const result = response.data as ApiResponse
+    if (result.code === 0) {
+      return result.data
+    } else {
+      const error = new Error(result.msg || '请求失败')
+      return Promise.reject(error)
+    }
+  },
   (error) => {
     console.error('API Error:', error)
     return Promise.reject(error)
