@@ -94,7 +94,7 @@ onMounted(async () => {
     <div class="max-w-4xl mx-auto">
       <header class="flex items-center justify-between mb-8 animate-fade-in">
         <div>
-          <h1 class="text-2xl font-bold text-white">starslipay</h1>
+          <h1 class="text-2xl font-bold text-white">starsli支付系统</h1>
           <p class="text-blue-100 mt-1">欢迎回来，{{ authStore.userInfo?.name || authStore.userId }}</p>
         </div>
         
