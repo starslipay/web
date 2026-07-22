@@ -20,9 +20,7 @@ const formatBalance = (balance: number) => {
 
 const getCurrencySymbol = (curType: number) => {
   const symbols: Record<number, string> = {
-    0: '¥',
-    1: '$',
-    2: '€',
+    1: '¥',
   }
   return symbols[curType] || '¥'
 }
