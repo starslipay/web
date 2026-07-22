@@ -2,10 +2,12 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { LogOut, User, Banknote, ArrowRightLeft, RefreshCw, Wallet, Building, ChevronDown, X, Plus, FileText } from 'lucide-vue-next'
+import { useDebugStore } from '@/stores/debug'
+import { LogOut, User, Banknote, ArrowRightLeft, RefreshCw, Wallet, Building, ChevronDown, X, Plus, FileText, Zap } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const debugStore = useDebugStore()
 
 const loading = ref(true)
 const refreshing = ref(false)
@@ -183,6 +185,19 @@ onMounted(async () => {
                   class="w-full px-4 py-2 flex items-center gap-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
                 >
                   退出所有账户
+                </button>
+              </div>
+              
+              <div class="border-t border-gray-100">
+                <button
+                  @click="debugStore.toggleDebugMode"
+                  :class="[
+                    'w-full px-4 py-2 flex items-center gap-2 text-sm transition-colors',
+                    debugStore.isDebugMode ? 'bg-yellow-50 text-yellow-600' : 'text-gray-600 hover:bg-gray-50'
+                  ]"
+                >
+                  <Zap class="w-4 h-4" />
+                  {{ debugStore.isDebugMode ? '关闭调试模式' : '开启调试模式' }}
                 </button>
               </div>
             </div>

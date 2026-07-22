@@ -80,6 +80,10 @@ body {
   .animate-bounce-in {
     animation: bounceIn 0.5s ease-out;
   }
+  
+  .animate-slide-in-right {
+    animation: slideInRight 0.3s ease-out;
+  }
 }
 
 @keyframes fadeIn {
@@ -90,6 +94,11 @@ body {
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes bounceIn {
