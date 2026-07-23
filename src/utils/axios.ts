@@ -65,11 +65,22 @@ instance.interceptors.response.use(
     const method = error.config?.method?.toUpperCase() || 'GET'
     const statusCode = error.response?.status || null
     const responseData = error.response?.data || null
-    const errorMessage = error.message || '网络错误'
+    
+    let errorMessage = error.message || '网络错误'
+    
+    if (responseData && typeof responseData === 'object') {
+      if (responseData.msg) {
+        errorMessage = responseData.msg
+      } else if (responseData.message) {
+        errorMessage = responseData.message
+      }
+    }
     
     recordRequestLog(method, url, requestBody, responseData, statusCode, duration, errorMessage)
-    console.error('API Error:', error)
-    return Promise.reject(error)
+    console.error('API Error:', errorMessage)
+    
+    const customError = new Error(errorMessage)
+    return Promise.reject(customError)
   }
 )
 

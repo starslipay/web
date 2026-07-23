@@ -13,6 +13,21 @@ const loading = ref(true)
 const refreshing = ref(false)
 const showAccountMenu = ref(false)
 
+const toast = ref({
+  show: false,
+  message: '',
+  type: 'success' as 'success' | 'error' | 'warning',
+})
+
+const showToast = (message: string, type: 'success' | 'error' | 'warning') => {
+  toast.value.message = message
+  toast.value.type = type
+  toast.value.show = true
+  setTimeout(() => {
+    toast.value.show = false
+  }, 3000)
+}
+
 const formatBalance = (balance: number) => {
   const yuan = balance / 100
   return yuan.toLocaleString('zh-CN', { minimumFractionDigits: 2 })
@@ -31,7 +46,8 @@ const refreshData = async () => {
     await authStore.getUserInfo()
     await authStore.getUserBalance()
   } catch (error) {
-    console.error('刷新数据失败:', error)
+    const msg = (error as Error).message || '刷新数据失败'
+    showToast(msg, 'error')
   } finally {
     refreshing.value = false
   }
@@ -323,6 +339,20 @@ onMounted(async () => {
       class="fixed inset-0 z-40"
       @click="showAccountMenu = false"
     ></div>
+
+    <Transition name="toast">
+      <div
+        v-if="toast.show"
+        :class="[
+          'toast',
+          toast.type === 'success' ? 'toast-success' : '',
+          toast.type === 'error' ? 'toast-error' : '',
+          toast.type === 'warning' ? 'toast-warning' : '',
+        ]"
+      >
+        <span class="font-medium">{{ toast.message }}</span>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -336,5 +366,16 @@ onMounted(async () => {
 .dropdown-leave-to {
   opacity: 0;
   transform: translateY(-10px) scale(0.95);
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -100%);
 }
 </style>

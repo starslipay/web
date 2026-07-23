@@ -64,7 +64,7 @@ const getStatusClass = (statusCode: number | null) => {
 <template>
   <div
     v-if="debugStore.isDebugMode"
-    class="fixed top-0 right-0 h-full w-[480px] bg-gray-900 text-white shadow-2xl z-50 overflow-hidden flex flex-col animate-slide-in-right"
+    class="fixed top-0 right-0 h-full w-[600px] bg-gray-900 text-white shadow-2xl z-50 overflow-hidden flex flex-col animate-slide-in-right"
   >
     <div class="flex items-center justify-between p-4 border-b border-gray-700">
       <div class="flex items-center gap-2">
@@ -100,9 +100,10 @@ const getStatusClass = (statusCode: number | null) => {
         class="bg-gray-800 rounded-lg overflow-hidden"
       >
         <div
-          @click="toggleExpand(log.id)"
-          class="flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-700 transition-colors"
-        >
+        @click="toggleExpand(log.id)"
+        class="p-3 cursor-pointer hover:bg-gray-700 transition-colors"
+      >
+        <div class="flex items-center gap-3">
           <component
             :is="expandedLogs.has(log.id) ? ChevronDown : ChevronRight"
             class="w-4 h-4 text-gray-400 flex-shrink-0"
@@ -120,8 +121,18 @@ const getStatusClass = (statusCode: number | null) => {
             <Clock class="w-3 h-3" />
             {{ formatDuration(log.duration) }}
           </div>
-          <AlertCircle v-if="log.error" class="w-4 h-4 text-red-500" />
+          <AlertCircle v-if="log.error || (log.responseData && log.responseData.code !== undefined && log.responseData.code !== 0)" class="w-4 h-4 text-red-500 flex-shrink-0" />
         </div>
+        
+        <div v-if="log.responseData && (log.responseData.code !== undefined || log.responseData.message !== undefined)" class="mt-2 flex items-center gap-3 pl-7">
+          <span class="text-xs text-gray-500">code:</span>
+          <span :class="['text-xs font-medium', log.responseData.code === 0 ? 'text-green-400' : 'text-red-400']">
+            {{ log.responseData.code }}
+          </span>
+          <span class="text-xs text-gray-500">msg:</span>
+          <span class="text-xs text-gray-300 truncate">{{ log.responseData.message || log.responseData.msg || '-' }}</span>
+        </div>
+      </div>
 
         <div
           v-if="expandedLogs.has(log.id)"
@@ -146,6 +157,24 @@ const getStatusClass = (statusCode: number | null) => {
               </button>
             </div>
             <pre class="text-xs text-gray-300 bg-gray-900 p-3 rounded-lg max-h-40 overflow-auto"><code>{{ JSON.stringify(log.requestBody, null, 2) }}</code></pre>
+          </div>
+
+          <div v-if="log.responseData && (log.responseData.code !== undefined || log.responseData.message !== undefined)">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-medium text-purple-400">响应状态</span>
+            </div>
+            <div class="bg-gray-900 rounded-lg p-3 space-y-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-400 w-16">code:</span>
+                <span :class="['text-xs font-medium', log.responseData.code === 0 ? 'text-green-400' : 'text-red-400']">
+                  {{ log.responseData.code }}
+                </span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-400 w-16">message:</span>
+                <span class="text-xs text-gray-300">{{ log.responseData.message || log.responseData.msg || '-' }}</span>
+              </div>
+            </div>
           </div>
 
           <div>

@@ -1,0 +1,1 @@
+.\build.ps1 -DeployTarget remote -RemoteUser root -RemoteHost 43.136.84.124 -RemotePath /var/www/starslipay

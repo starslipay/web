@@ -3,10 +3,12 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { payGateApi } from '@/api/pay_gate'
-import { ArrowLeft, ArrowRightLeft, Building, Lock, Eye, EyeOff } from 'lucide-vue-next'
+import { ArrowLeft, ArrowRightLeft, Building, Lock, Eye, EyeOff, Zap } from 'lucide-vue-next'
+import { useDebugStore } from '@/stores/debug'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const debugStore = useDebugStore()
 
 const activeTab = ref<'c2c' | 'bank2c'>('c2c')
 const loading = ref(false)
@@ -111,7 +113,8 @@ const c2cTransfer = async () => {
       resetC2C()
     }
   } catch (error) {
-    showToast('转账失败，请检查密码和余额', 'error')
+    const msg = (error as Error).message || '转账失败'
+    showToast(msg, 'error')
   } finally {
     loading.value = false
   }
@@ -147,7 +150,8 @@ const bank2cTransfer = async () => {
       resetBank2C()
     }
   } catch (error) {
-    showToast('充值失败，请检查密码', 'error')
+    const msg = (error as Error).message || '充值失败'
+    showToast(msg, 'error')
   } finally {
     loading.value = false
   }
@@ -157,14 +161,29 @@ const bank2cTransfer = async () => {
 <template>
   <div class="min-h-screen p-6">
     <div class="max-w-2xl mx-auto">
-      <header class="flex items-center gap-4 mb-6 animate-fade-in">
+      <header class="flex items-center justify-between mb-6 animate-fade-in">
+        <div class="flex items-center gap-4">
+          <button
+            @click="goBack"
+            class="p-2 hover:bg-white/10 text-white rounded-lg transition-colors"
+          >
+            <ArrowLeft class="w-5 h-5" />
+          </button>
+          <h1 class="text-2xl font-bold text-white">转账管理</h1>
+        </div>
+        
         <button
-          @click="goBack"
-          class="p-2 hover:bg-white/10 text-white rounded-lg transition-colors"
+          @click="debugStore.toggleDebugMode"
+          :class="[
+            'flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all',
+            debugStore.isDebugMode
+              ? 'bg-yellow-400 text-yellow-900 shadow-lg shadow-yellow-400/30'
+              : 'bg-white/10 text-white hover:bg-white/20'
+          ]"
         >
-          <ArrowLeft class="w-5 h-5" />
+          <Zap class="w-4 h-4" />
+          {{ debugStore.isDebugMode ? '调试中' : '调试模式' }}
         </button>
-        <h1 class="text-2xl font-bold text-white">转账管理</h1>
       </header>
 
       <div class="card p-6 animate-slide-up">
@@ -357,6 +376,6 @@ const bank2cTransfer = async () => {
 .toast-enter-from,
 .toast-leave-to {
   opacity: 0;
-  transform: translateX(100%);
+  transform: translate(-50%, -100%);
 }
 </style>

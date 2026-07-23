@@ -4,10 +4,12 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { payGateApi } from '@/api/pay_gate'
 import type { UserFlow } from '@/api/types'
-import { ArrowLeft, Clock, Users, ArrowDownLeft, ArrowUpRight, RefreshCw, FileText } from 'lucide-vue-next'
+import { ArrowLeft, Clock, Users, ArrowDownLeft, ArrowUpRight, RefreshCw, FileText, Zap } from 'lucide-vue-next'
+import { useDebugStore } from '@/stores/debug'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const debugStore = useDebugStore()
 
 const loading = ref(false)
 const refreshing = ref(false)
@@ -16,6 +18,21 @@ const currentOffset = ref(0)
 const pageSize = ref(20)
 const hasMore = ref(true)
 const totalCount = ref(0)
+
+const toast = ref({
+  show: false,
+  message: '',
+  type: 'success' as 'success' | 'error' | 'warning',
+})
+
+const showToast = (message: string, type: 'success' | 'error' | 'warning') => {
+  toast.value.message = message
+  toast.value.type = type
+  toast.value.show = true
+  setTimeout(() => {
+    toast.value.show = false
+  }, 3000)
+}
 
 const pageSizes = [10, 20, 50, 100]
 
@@ -99,7 +116,8 @@ const loadTransactions = async (reset = false) => {
       hasMore.value = false
     }
   } catch (error) {
-    console.error('获取交易明细失败:', error)
+    const msg = (error as Error).message || '获取交易明细失败'
+    showToast(msg, 'error')
   } finally {
     loading.value = false
   }
@@ -138,14 +156,28 @@ onMounted(() => {
           <h1 class="text-2xl font-bold text-white">交易明细</h1>
         </div>
         
-        <button
-          @click="refreshData"
-          :disabled="refreshing"
-          class="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
-        >
-          <RefreshCw :class="['w-4 h-4', refreshing ? 'animate-spin' : '']" />
-          刷新
-        </button>
+        <div class="flex items-center gap-3">
+          <button
+            @click="debugStore.toggleDebugMode"
+            :class="[
+              'flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all',
+              debugStore.isDebugMode
+                ? 'bg-yellow-400 text-yellow-900 shadow-lg shadow-yellow-400/30'
+                : 'bg-white/10 text-white hover:bg-white/20'
+            ]"
+          >
+            <Zap class="w-4 h-4" />
+            {{ debugStore.isDebugMode ? '调试中' : '调试模式' }}
+          </button>
+          <button
+            @click="refreshData"
+            :disabled="refreshing"
+            class="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+          >
+            <RefreshCw :class="['w-4 h-4', refreshing ? 'animate-spin' : '']" />
+            刷新
+          </button>
+        </div>
       </header>
 
       <div class="card p-4 mb-4 flex items-center justify-between">
@@ -248,5 +280,32 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <Transition name="toast">
+      <div
+        v-if="toast.show"
+        :class="[
+          'toast',
+          toast.type === 'success' ? 'toast-success' : '',
+          toast.type === 'error' ? 'toast-error' : '',
+          toast.type === 'warning' ? 'toast-warning' : '',
+        ]"
+      >
+        <span class="font-medium">{{ toast.message }}</span>
+      </div>
+    </Transition>
   </div>
 </template>
+
+<style scoped>
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -100%);
+}
+</style>

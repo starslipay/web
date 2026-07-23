@@ -3,10 +3,12 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { payGateApi } from '@/api/pay_gate'
-import { ArrowLeft, User, Edit3, Save, Mail, Phone, MapPin, Calendar, CreditCard, RefreshCw } from 'lucide-vue-next'
+import { ArrowLeft, User, Edit3, Save, Mail, Phone, MapPin, Calendar, CreditCard, RefreshCw, Zap } from 'lucide-vue-next'
+import { useDebugStore } from '@/stores/debug'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const debugStore = useDebugStore()
 
 const loading = ref(true)
 const editing = ref(false)
@@ -95,7 +97,8 @@ const saveProfile = async () => {
     showToast('资料更新成功', 'success')
     editing.value = false
   } catch (error) {
-    showToast('更新失败', 'error')
+    const msg = (error as Error).message || '更新失败'
+    showToast(msg, 'error')
   } finally {
     saving.value = false
   }
@@ -106,7 +109,8 @@ const refreshData = async () => {
   try {
     await authStore.getUserInfo()
   } catch (error) {
-    showToast('刷新失败', 'error')
+    const msg = (error as Error).message || '刷新失败'
+    showToast(msg, 'error')
   } finally {
     loading.value = false
   }
@@ -137,6 +141,18 @@ onMounted(async () => {
           <h1 class="text-2xl font-bold text-white">个人资料</h1>
         </div>
         <div class="flex items-center gap-3">
+          <button
+            @click="debugStore.toggleDebugMode"
+            :class="[
+              'flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all',
+              debugStore.isDebugMode
+                ? 'bg-yellow-400 text-yellow-900 shadow-lg shadow-yellow-400/30'
+                : 'bg-white/10 text-white hover:bg-white/20'
+            ]"
+          >
+            <Zap class="w-4 h-4" />
+            {{ debugStore.isDebugMode ? '调试中' : '调试模式' }}
+          </button>
           <button
             @click="refreshData"
             :disabled="loading"
@@ -366,6 +382,6 @@ onMounted(async () => {
 .toast-enter-from,
 .toast-leave-to {
   opacity: 0;
-  transform: translateX(100%);
+  transform: translate(-50%, -100%);
 }
 </style>

@@ -2,10 +2,12 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { ArrowLeft, User, Lock, Mail, Phone, MapPin, Calendar, CreditCard, Eye, EyeOff, UserPlus } from 'lucide-vue-next'
+import { ArrowLeft, User, Lock, Mail, Phone, MapPin, Calendar, CreditCard, Eye, EyeOff, UserPlus, Zap } from 'lucide-vue-next'
+import { useDebugStore } from '@/stores/debug'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const debugStore = useDebugStore()
 
 const loading = ref(false)
 const showPassword = ref(false)
@@ -135,6 +137,19 @@ const handleRegister = async () => {
             </div>
             <h1 class="text-2xl font-bold text-gray-800">用户注册</h1>
             <p class="text-gray-500 mt-1">创建您的新账户</p>
+            
+            <button
+              @click="debugStore.toggleDebugMode"
+              :class="[
+                'mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all',
+                debugStore.isDebugMode
+                  ? 'bg-yellow-400 text-yellow-900 shadow-lg shadow-yellow-400/30'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ]"
+            >
+              <Zap class="w-4 h-4" />
+              {{ debugStore.isDebugMode ? '调试中' : '调试模式' }}
+            </button>
           </div>
         </div>
 
@@ -333,6 +348,6 @@ const handleRegister = async () => {
 .toast-enter-from,
 .toast-leave-to {
   opacity: 0;
-  transform: translateX(100%);
+  transform: translate(-50%, -100%);
 }
 </style>

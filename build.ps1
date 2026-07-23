@@ -2,7 +2,7 @@
 # Usage:
 #   .\build.ps1                          # Build only
 #   .\build.ps1 -DeployTarget remote     # Build and deploy using config file
-#   .\build.ps1 -DeployTarget remote -RemoteUser root -RemoteHost 43.136.84.124 -RemotePath /var/www/html
+#   .\build.ps1 -DeployTarget remote -RemoteUser root -RemoteHost 43.136.84.124 -RemotePath /var/www/starslipay
 
 param(
     [string]$DeployTarget,
