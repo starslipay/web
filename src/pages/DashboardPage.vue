@@ -98,25 +98,39 @@ onMounted(async () => {
           <p class="text-blue-100 mt-1">欢迎回来，{{ authStore.userInfo?.name || authStore.userId }}</p>
         </div>
         
-        <div class="relative">
+        <div class="flex items-center gap-4">
           <button
-            @click="showAccountMenu = !showAccountMenu"
-            class="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+            @click="debugStore.toggleDebugMode"
+            :class="[
+              'flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all',
+              debugStore.isDebugMode
+                ? 'bg-yellow-400 text-yellow-900 shadow-lg shadow-yellow-400/30'
+                : 'bg-white/10 text-white hover:bg-white/20'
+            ]"
           >
-            <User class="w-4 h-4" />
-            {{ authStore.userId }}
-            <ChevronDown :class="['w-4 h-4 transition-transform', showAccountMenu ? 'rotate-180' : '']" />
+            <Zap class="w-4 h-4" />
+            {{ debugStore.isDebugMode ? '调试中' : '调试模式' }}
           </button>
           
-          <Transition name="dropdown">
-            <div
-              v-if="showAccountMenu"
-              class="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50"
+          <div class="relative">
+            <button
+              @click="showAccountMenu = !showAccountMenu"
+              class="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
             >
-              <div class="px-4 py-2 border-b border-gray-100">
-                <p class="text-sm font-medium text-gray-800">已登录账户</p>
-                <p class="text-xs text-gray-500">{{ authStore.userAccounts.length }} 个账户</p>
-              </div>
+              <User class="w-4 h-4" />
+              {{ authStore.userId }}
+              <ChevronDown :class="['w-4 h-4 transition-transform', showAccountMenu ? 'rotate-180' : '']" />
+            </button>
+            
+            <Transition name="dropdown">
+              <div
+                v-if="showAccountMenu"
+                class="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50"
+              >
+                <div class="px-4 py-2 border-b border-gray-100">
+                  <p class="text-sm font-medium text-gray-800">已登录账户</p>
+                  <p class="text-xs text-gray-500">{{ authStore.userAccounts.length }} 个账户</p>
+                </div>
               
               <div class="max-h-60 overflow-y-auto">
                 <button
@@ -185,21 +199,9 @@ onMounted(async () => {
                   退出所有账户
                 </button>
               </div>
-              
-              <div class="border-t border-gray-100">
-                <button
-                  @click="debugStore.toggleDebugMode"
-                  :class="[
-                    'w-full px-4 py-2 flex items-center gap-2 text-sm transition-colors',
-                    debugStore.isDebugMode ? 'bg-yellow-50 text-yellow-600' : 'text-gray-600 hover:bg-gray-50'
-                  ]"
-                >
-                  <Zap class="w-4 h-4" />
-                  {{ debugStore.isDebugMode ? '关闭调试模式' : '开启调试模式' }}
-                </button>
-              </div>
             </div>
           </Transition>
+        </div>
         </div>
       </header>
 
