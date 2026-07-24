@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDebugStore } from '@/stores/debug'
-import { LogOut, User, Banknote, ArrowRightLeft, RefreshCw, Wallet, Building, ChevronDown, X, Plus, FileText, Zap } from 'lucide-vue-next'
+import { LogOut, User, Banknote, ArrowRightLeft, RefreshCw, Wallet, Building, ChevronDown, X, Plus, FileText, Zap, ArrowUpFromLine } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -260,7 +260,7 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
           <button
             @click="goToTransfer"
             class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
@@ -286,9 +286,21 @@ onMounted(async () => {
           </button>
 
           <button
-            @click="goToProfile"
+            @click="goToTransfer"
             class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
             style="animation-delay: 0.3s"
+          >
+            <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <ArrowUpFromLine class="w-6 h-6 text-white" />
+            </div>
+            <h3 class="font-semibold text-gray-800">提现到银行</h3>
+            <p class="text-sm text-gray-500 mt-1">C2Bank提现</p>
+          </button>
+
+          <button
+            @click="goToProfile"
+            class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
+            style="animation-delay: 0.4s"
           >
             <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
               <User class="w-6 h-6 text-white" />
@@ -300,7 +312,7 @@ onMounted(async () => {
           <button
             @click="goToTransactions"
             class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
-            style="animation-delay: 0.4s"
+            style="animation-delay: 0.5s"
           >
             <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
               <FileText class="w-6 h-6 text-white" />

@@ -22,6 +22,10 @@ import type {
   Bank2CPreRsp,
   Bank2CDoReq,
   Bank2CDoRsp,
+  C2BankPreReq,
+  C2BankPreRsp,
+  C2BankDoReq,
+  C2BankDoRsp,
 } from './types'
 
 export const payGateApi = {
@@ -67,5 +71,13 @@ export const payGateApi = {
 
   bank2cDo: async (req: Bank2CDoReq): Promise<Bank2CDoRsp> => {
     return api.post('/api/pay_gate/bank2c_do', req) as unknown as Bank2CDoRsp
+  },
+
+  c2bankPre: async (req: C2BankPreReq): Promise<C2BankPreRsp> => {
+    return api.post('/api/pay_gate/c2bank_pre', req) as unknown as C2BankPreRsp
+  },
+
+  c2bankDo: async (req: C2BankDoReq): Promise<C2BankDoRsp> => {
+    return api.post('/api/pay_gate/c2bank_do', req) as unknown as C2BankDoRsp
   },
 }

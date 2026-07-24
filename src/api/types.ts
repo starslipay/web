@@ -145,3 +145,28 @@ export interface Bank2CDoRsp {
   user_id: string
   is_repeat: number
 }
+
+export interface C2BankPreReq {
+  user_id: string
+}
+
+export interface C2BankPreRsp {
+  user_id: string
+  transaction_id: string
+}
+
+export interface C2BankDoReq {
+  transaction_id: string
+  user_id: string
+  bank_type: number
+  amount: number
+  desc: string
+  verify_type: number
+  password: string
+}
+
+export interface C2BankDoRsp {
+  transaction_id: string
+  user_id: string
+  is_repeat: number
+}

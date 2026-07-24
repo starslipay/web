@@ -3,14 +3,14 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { payGateApi } from '@/api/pay_gate'
-import { ArrowLeft, ArrowRightLeft, Building, Lock, Eye, EyeOff, Zap } from 'lucide-vue-next'
+import { ArrowLeft, ArrowRightLeft, Building, Lock, Eye, EyeOff, Zap, ArrowUpFromLine } from 'lucide-vue-next'
 import { useDebugStore } from '@/stores/debug'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const debugStore = useDebugStore()
 
-const activeTab = ref<'c2c' | 'bank2c'>('c2c')
+const activeTab = ref<'c2c' | 'bank2c' | 'c2bank'>('c2c')
 const loading = ref(false)
 const showPassword = ref(false)
 const toast = reactive({
@@ -28,6 +28,15 @@ const c2cForm = reactive({
 })
 
 const bank2cForm = reactive({
+  user_id: authStore.userId || '',
+  bank_type: 1,
+  amount: '',
+  desc: '',
+  verify_type: 1,
+  password: '',
+})
+
+const c2bankForm = reactive({
   user_id: authStore.userId || '',
   bank_type: 1,
   amount: '',
@@ -71,6 +80,13 @@ const resetBank2C = () => {
   bank2cForm.amount = ''
   bank2cForm.desc = ''
   bank2cForm.password = ''
+}
+
+const resetC2Bank = () => {
+  c2bankForm.bank_type = 1
+  c2bankForm.amount = ''
+  c2bankForm.desc = ''
+  c2bankForm.password = ''
 }
 
 const formatAmount = (value: string) => {
@@ -156,6 +172,43 @@ const bank2cTransfer = async () => {
     loading.value = false
   }
 }
+
+const c2bankWithdraw = async () => {
+  if (!c2bankForm.amount || !c2bankForm.desc || !c2bankForm.password) {
+    showToast('请填写完整的提现信息', 'error')
+    return
+  }
+
+  loading.value = true
+  try {
+    const preResponse = await payGateApi.c2bankPre({ user_id: c2bankForm.user_id })
+
+    const amountInCents = Math.round(parseFloat(c2bankForm.amount) * 100)
+
+    const doResponse = await payGateApi.c2bankDo({
+      transaction_id: preResponse.transaction_id,
+      user_id: c2bankForm.user_id,
+      bank_type: c2bankForm.bank_type,
+      amount: amountInCents,
+      desc: c2bankForm.desc,
+      verify_type: c2bankForm.verify_type,
+      password: c2bankForm.password,
+    })
+
+    if (doResponse.is_repeat === 1) {
+      showToast('该交易已重复提交', 'warning')
+    } else {
+      showToast('提现成功', 'success')
+      await authStore.getUserBalance()
+      resetC2Bank()
+    }
+  } catch (error) {
+    const msg = (error as Error).message || '提现失败'
+    showToast(msg, 'error')
+  } finally {
+    loading.value = false
+  }
+}
 </script>
 
 <template>
@@ -211,6 +264,18 @@ const bank2cTransfer = async () => {
           >
             <Building class="w-5 h-5" />
             银行卡充值
+          </button>
+          <button
+            @click="activeTab = 'c2bank'; resetC2Bank()"
+            :class="[
+              'flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md font-medium transition-all duration-200',
+              activeTab === 'c2bank'
+                ? 'bg-white shadow-md text-primary-600'
+                : 'text-gray-500 hover:text-gray-700',
+            ]"
+          >
+            <ArrowUpFromLine class="w-5 h-5" />
+            提现到银行
           </button>
         </div>
 
@@ -277,7 +342,7 @@ const bank2cTransfer = async () => {
           </button>
         </div>
 
-        <div v-else class="space-y-4">
+        <div v-else-if="activeTab === 'bank2c'" class="space-y-4">
           <div>
             <label class="label">用户ID</label>
             <input
@@ -346,6 +411,78 @@ const bank2cTransfer = async () => {
             class="w-full btn-success py-3 text-lg"
           >
             {{ loading ? '处理中...' : '确认充值' }}
+          </button>
+        </div>
+
+        <div v-else class="space-y-4">
+          <div>
+            <label class="label">用户ID</label>
+            <input
+              v-model="c2bankForm.user_id"
+              type="text"
+              class="input-field"
+              placeholder="请输入用户ID"
+              readonly
+            />
+          </div>
+
+          <div>
+            <label class="label">银行类型</label>
+            <select v-model="c2bankForm.bank_type" class="input-field">
+              <option v-for="bank in bankTypes" :key="bank.value" :value="bank.value">
+                {{ bank.label }}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label class="label">提现金额</label>
+            <input
+              v-model="c2bankForm.amount"
+              type="text"
+              class="input-field"
+              placeholder="请输入提现金额（元）"
+              @input="c2bankForm.amount = formatAmount(c2bankForm.amount)"
+            />
+          </div>
+
+          <div>
+            <label class="label">备注</label>
+            <textarea
+              v-model="c2bankForm.desc"
+              class="input-field resize-none"
+              rows="3"
+              placeholder="请输入备注信息"
+            ></textarea>
+          </div>
+
+          <div>
+            <label class="label">交易密码</label>
+            <div class="relative">
+              <Lock class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                v-model="c2bankForm.password"
+                :type="showPassword ? 'text' : 'password'"
+                class="input-field pl-12 pr-12"
+                placeholder="请输入交易密码"
+              />
+              <button
+                type="button"
+                @click="showPassword = !showPassword"
+                class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <EyeOff v-if="showPassword" class="w-5 h-5" />
+                <Eye v-else class="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          <button
+            @click="c2bankWithdraw"
+            :disabled="loading"
+            class="w-full btn-danger py-3 text-lg"
+          >
+            {{ loading ? '处理中...' : '确认提现' }}
           </button>
         </div>
       </div>
