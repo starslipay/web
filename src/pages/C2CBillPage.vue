@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { useDebugStore } from '@/stores/debug'
 import { payGateApi } from '@/api/pay_gate'
 import type { GetC2CBillRsp } from '@/api/types'
 import { ArrowLeft, Search, Clock, Users, FileText, Zap, Wallet } from 'lucide-vue-next'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const debugStore = useDebugStore()
 
 const loading = ref(false)
@@ -87,11 +89,13 @@ const queryBill = async () => {
 }
 
 onMounted(() => {
-  refreshInterval = setInterval(() => {
-    if (billInfo.value) {
-      queryBill()
+  refreshInterval = setInterval(async () => {
+    try {
+      await authStore.getUserBalance()
+    } catch (error) {
+      console.error('定时刷新余额失败:', error)
     }
-  }, 10000)
+  }, 30000)
 })
 
 onUnmounted(() => {

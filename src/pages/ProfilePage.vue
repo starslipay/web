@@ -128,11 +128,11 @@ onMounted(async () => {
 
   refreshInterval = setInterval(async () => {
     try {
-      await authStore.getUserInfo()
+      await authStore.getUserBalance()
     } catch (error) {
-      console.error('定时刷新用户信息失败:', error)
+      console.error('定时刷新余额失败:', error)
     }
-  }, 10000)
+  }, 30000)
 })
 
 onUnmounted(() => {

@@ -44,7 +44,6 @@ const getCurrencySymbol = (curType: number) => {
 const refreshData = async () => {
   refreshing.value = true
   try {
-    await authStore.getUserInfo()
     await authStore.getUserBalance()
   } catch (error) {
     const msg = (error as Error).message || '刷新数据失败'
@@ -110,7 +109,7 @@ onMounted(async () => {
 
   refreshInterval = setInterval(() => {
     refreshData()
-  }, 10000)
+  }, 30000)
 })
 
 onUnmounted(() => {

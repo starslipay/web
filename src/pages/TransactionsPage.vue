@@ -142,9 +142,13 @@ const goBack = () => {
 onMounted(() => {
   loadTransactions()
 
-  refreshInterval = setInterval(() => {
-    loadTransactions(true)
-  }, 10000)
+  refreshInterval = setInterval(async () => {
+    try {
+      await authStore.getUserBalance()
+    } catch (error) {
+      console.error('定时刷新余额失败:', error)
+    }
+  }, 30000)
 })
 
 onUnmounted(() => {

@@ -220,7 +220,7 @@ onMounted(() => {
     } catch (error) {
       console.error('定时刷新余额失败:', error)
     }
-  }, 10000)
+  }, 30000)
 })
 
 onUnmounted(() => {
