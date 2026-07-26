@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { payGateApi } from '@/api/pay_gate'
@@ -18,6 +18,7 @@ const currentOffset = ref(0)
 const pageSize = ref(20)
 const hasMore = ref(true)
 const totalCount = ref(0)
+let refreshInterval: ReturnType<typeof setInterval> | null = null
 
 const toast = ref({
   show: false,
@@ -140,6 +141,16 @@ const goBack = () => {
 
 onMounted(() => {
   loadTransactions()
+
+  refreshInterval = setInterval(() => {
+    loadTransactions(true)
+  }, 10000)
+})
+
+onUnmounted(() => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+  }
 })
 </script>
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDebugStore } from '@/stores/debug'
 import { payGateApi } from '@/api/pay_gate'
@@ -13,6 +13,7 @@ const loading = ref(false)
 const searching = ref(false)
 const billInfo = ref<GetC2CBillRsp | null>(null)
 const notFound = ref(false)
+let refreshInterval: ReturnType<typeof setInterval> | null = null
 
 const form = reactive({
   transaction_id: '',
@@ -84,6 +85,20 @@ const queryBill = async () => {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  refreshInterval = setInterval(() => {
+    if (billInfo.value) {
+      queryBill()
+    }
+  }, 10000)
+})
+
+onUnmounted(() => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+  }
+})
 </script>
 
 <template>

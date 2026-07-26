@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { payGateApi } from '@/api/pay_gate'
@@ -13,6 +13,7 @@ const debugStore = useDebugStore()
 const loading = ref(true)
 const editing = ref(false)
 const saving = ref(false)
+let refreshInterval: ReturnType<typeof setInterval> | null = null
 const toast = reactive({
   show: false,
   message: '',
@@ -123,6 +124,20 @@ onMounted(async () => {
     console.error('加载数据失败:', error)
   } finally {
     loading.value = false
+  }
+
+  refreshInterval = setInterval(async () => {
+    try {
+      await authStore.getUserInfo()
+    } catch (error) {
+      console.error('定时刷新用户信息失败:', error)
+    }
+  }, 10000)
+})
+
+onUnmounted(() => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
   }
 })
 </script>

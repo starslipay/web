@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDebugStore } from '@/stores/debug'
@@ -12,6 +12,7 @@ const debugStore = useDebugStore()
 const loading = ref(true)
 const refreshing = ref(false)
 const showAccountMenu = ref(false)
+let refreshInterval: ReturnType<typeof setInterval> | null = null
 
 const toast = ref({
   show: false,
@@ -105,6 +106,16 @@ onMounted(async () => {
     console.error('加载数据失败:', error)
   } finally {
     loading.value = false
+  }
+
+  refreshInterval = setInterval(() => {
+    refreshData()
+  }, 10000)
+})
+
+onUnmounted(() => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
   }
 })
 </script>

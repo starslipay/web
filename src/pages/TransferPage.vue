@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { payGateApi } from '@/api/pay_gate'
@@ -13,6 +13,7 @@ const debugStore = useDebugStore()
 const activeTab = ref<'c2c' | 'bank2c' | 'c2bank'>('c2c')
 const loading = ref(false)
 const showPassword = ref(false)
+let refreshInterval: ReturnType<typeof setInterval> | null = null
 const toast = reactive({
   show: false,
   message: '',
@@ -211,6 +212,22 @@ const c2bankWithdraw = async () => {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  refreshInterval = setInterval(async () => {
+    try {
+      await authStore.getUserBalance()
+    } catch (error) {
+      console.error('定时刷新余额失败:', error)
+    }
+  }, 10000)
+})
+
+onUnmounted(() => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+  }
+})
 </script>
 
 <template>
