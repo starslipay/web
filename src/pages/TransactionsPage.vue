@@ -246,6 +246,10 @@ onMounted(() => {
                     {{ formatDateTime(transaction.create_time) }}
                   </div>
                   <div class="flex items-center gap-1">
+                    <FileText class="w-3 h-3" />
+                    {{ transaction.transaction_id }}
+                  </div>
+                  <div class="flex items-center gap-1">
                     <Users class="w-3 h-3" />
                     对手方: {{ transaction.counterparty_user_id || '-' }}
                   </div>

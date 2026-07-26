@@ -170,3 +170,16 @@ export interface C2BankDoRsp {
   user_id: string
   is_repeat: number
 }
+
+export interface GetC2CBillReq {
+  transaction_id: string
+}
+
+export interface GetC2CBillRsp {
+  transaction_id: string
+  buyer_user_id: string
+  seller_user_id: string
+  pay_time: string
+  amount: number
+  desc: string
+}

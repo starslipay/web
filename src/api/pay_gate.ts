@@ -26,6 +26,8 @@ import type {
   C2BankPreRsp,
   C2BankDoReq,
   C2BankDoRsp,
+  GetC2CBillReq,
+  GetC2CBillRsp,
 } from './types'
 
 export const payGateApi = {
@@ -79,5 +81,9 @@ export const payGateApi = {
 
   c2bankDo: async (req: C2BankDoReq): Promise<C2BankDoRsp> => {
     return api.post('/api/pay_gate/c2bank_do', req) as unknown as C2BankDoRsp
+  },
+
+  getC2CBill: async (req: GetC2CBillReq): Promise<GetC2CBillRsp> => {
+    return api.post('/api/pay_gate/get_c2c_bill', req) as unknown as GetC2CBillRsp
   },
 }

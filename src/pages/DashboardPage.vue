@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDebugStore } from '@/stores/debug'
-import { LogOut, User, Banknote, ArrowRightLeft, RefreshCw, Wallet, Building, ChevronDown, X, Plus, FileText, Zap, ArrowUpFromLine } from 'lucide-vue-next'
+import { LogOut, User, Banknote, ArrowRightLeft, RefreshCw, Wallet, Building, ChevronDown, X, Plus, FileText, Zap, ArrowUpFromLine, Search } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -86,6 +86,10 @@ const goToProfile = () => {
 
 const goToTransactions = () => {
   router.push('/transactions')
+}
+
+const goToC2CBill = () => {
+  router.push('/c2c-bill')
 }
 
 const goToRegister = () => {
@@ -319,6 +323,18 @@ onMounted(async () => {
             </div>
             <h3 class="font-semibold text-gray-800">交易明细</h3>
             <p class="text-sm text-gray-500 mt-1">查看交易记录</p>
+          </button>
+
+          <button
+            @click="goToC2CBill"
+            class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
+            style="animation-delay: 0.6s"
+          >
+            <div class="w-12 h-12 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <Search class="w-6 h-6 text-white" />
+            </div>
+            <h3 class="font-semibold text-gray-800">查询单据</h3>
+            <p class="text-sm text-gray-500 mt-1">C2C单据查询</p>
           </button>
         </div>
 
