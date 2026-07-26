@@ -161,7 +161,7 @@ onUnmounted(() => {
 <template>
   <div class="min-h-screen p-6">
     <div class="max-w-4xl mx-auto">
-      <header class="flex items-center justify-between mb-6 animate-fade-in">
+      <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4 animate-fade-in">
         <div class="flex items-center gap-4">
           <button
             @click="goBack"
@@ -232,7 +232,7 @@ onUnmounted(() => {
           class="card p-4 hover:shadow-md transition-shadow animate-slide-up"
           :style="{ animationDelay: `${index * 0.02}s` }"
         >
-          <div class="flex items-start justify-between">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div class="flex items-start gap-4">
               <div
                 :class="[

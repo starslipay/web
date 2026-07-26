@@ -121,9 +121,9 @@ const handleRegister = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center p-4">
+  <div class="min-h-screen flex items-center justify-center p-4 sm:p-6">
     <div class="w-full max-w-md animate-slide-up">
-      <div class="card p-8">
+      <div class="card p-6 sm:p-8">
         <div class="flex items-center gap-4 mb-6">
           <button
             @click="goBack"

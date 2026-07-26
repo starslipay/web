@@ -22,6 +22,12 @@ body {
   min-height: 100vh;
 }
 
+@media (max-width: 640px) {
+  body {
+    background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%);
+  }
+}
+
 @layer components {
   .card {
     @apply bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-100;
@@ -52,7 +58,7 @@ body {
   }
   
   .toast {
-    @apply fixed top-1/4 left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg shadow-xl z-50 transition-all duration-300 transform;
+    @apply fixed top-1/4 left-1/2 -translate-x-1/2 px-4 sm:px-6 py-3 rounded-lg shadow-xl z-50 transition-all duration-300 transform max-w-[90vw];
   }
   
   .toast-success {

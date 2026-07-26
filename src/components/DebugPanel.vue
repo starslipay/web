@@ -64,7 +64,7 @@ const getStatusClass = (statusCode: number | null) => {
 <template>
   <div
     v-if="debugStore.isDebugMode"
-    class="fixed top-0 right-0 h-full w-[600px] bg-gray-900 text-white shadow-2xl z-50 overflow-hidden flex flex-col animate-slide-in-right"
+    class="fixed top-0 right-0 h-full w-full sm:w-[600px] bg-gray-900 text-white shadow-2xl z-50 overflow-hidden flex flex-col animate-slide-in-right"
   >
     <div class="flex items-center justify-between p-4 border-b border-gray-700">
       <div class="flex items-center gap-2">

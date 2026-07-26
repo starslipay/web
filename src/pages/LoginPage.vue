@@ -75,9 +75,9 @@ const handleLogin = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center p-4">
+  <div class="min-h-screen flex items-center justify-center p-4 sm:p-6">
     <div class="w-full max-w-md animate-slide-up">
-      <div class="card p-8">
+      <div class="card p-6 sm:p-8">
         <div class="text-center mb-8">
           <div class="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
             <Server class="w-8 h-8 text-white" />

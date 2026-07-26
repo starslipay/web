@@ -122,7 +122,7 @@ onUnmounted(() => {
 <template>
   <div class="min-h-screen p-6">
     <div class="max-w-4xl mx-auto">
-      <header class="flex items-center justify-between mb-8 animate-fade-in">
+      <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4 animate-fade-in">
         <div>
           <h1 class="text-2xl font-bold text-white">starsli交易平台</h1>
           <p class="text-blue-100 mt-1">欢迎回来，{{ authStore.userInfo?.name || authStore.userId }}</p>
@@ -274,7 +274,7 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <button
             @click="goToTransfer"
             class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
@@ -350,7 +350,7 @@ onUnmounted(() => {
 
         <div class="card p-6 animate-slide-up" style="animation-delay: 0.5s">
           <h3 class="font-semibold text-gray-800 mb-4">快速信息</h3>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div class="bg-gray-50 rounded-lg p-4">
               <p class="text-xs text-gray-500 mb-1">用户ID</p>
               <p class="font-medium text-gray-800">{{ authStore.userId }}</p>
