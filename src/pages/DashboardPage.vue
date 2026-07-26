@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDebugStore } from '@/stores/debug'
-import { LogOut, User, Banknote, ArrowRightLeft, RefreshCw, Wallet, Building, ChevronDown, X, Plus, FileText, Zap, ArrowUpFromLine, Search } from 'lucide-vue-next'
+import { LogOut, User, Banknote, ArrowRightLeft, RefreshCw, Wallet, Building, ChevronDown, X, Plus, FileText, Zap, ArrowUpFromLine, Search, Activity } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -90,6 +90,10 @@ const goToTransactions = () => {
 
 const goToC2CBill = () => {
   router.push('/c2c-bill')
+}
+
+const goToTest = () => {
+  router.push('/test')
 }
 
 const goToRegister = () => {
@@ -345,6 +349,18 @@ onUnmounted(() => {
             </div>
             <h3 class="font-semibold text-gray-800">查询单据</h3>
             <p class="text-sm text-gray-500 mt-1">C2C单据查询</p>
+          </button>
+
+          <button
+            @click="goToTest"
+            class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
+            style="animation-delay: 0.7s"
+          >
+            <div class="w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <Activity class="w-6 h-6 text-white" />
+            </div>
+            <h3 class="font-semibold text-gray-800">压测中心</h3>
+            <p class="text-sm text-gray-500 mt-1">并发性能测试</p>
           </button>
         </div>
 
