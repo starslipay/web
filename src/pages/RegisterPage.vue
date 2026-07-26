@@ -23,23 +23,21 @@ const registerForm = reactive({
   password: '',
   confirmPassword: '',
   name: '',
-  gender: 0,
+  gender: 1,
   age: '',
   address: '',
   phone: '',
   email: '',
-  id_type: 0,
+  id_type: 1,
   id_card: '',
 })
 
 const genders = [
-  { value: 0, label: '未知' },
   { value: 1, label: '男' },
   { value: 2, label: '女' },
 ]
 
 const idTypes = [
-  { value: 0, label: '未知' },
   { value: 1, label: '身份证' },
   { value: 2, label: '护照' },
   { value: 3, label: '驾驶证' },
