@@ -39,8 +39,6 @@ const genders = [
 
 const idTypes = [
   { value: 1, label: '身份证' },
-  { value: 2, label: '护照' },
-  { value: 3, label: '驾驶证' },
 ]
 
 const showToast = (message: string, type: 'success' | 'error' | 'warning') => {
@@ -284,11 +282,9 @@ const handleRegister = async () => {
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="label">证件类型</label>
-              <select v-model="registerForm.id_type" class="input-field">
-                <option v-for="type in idTypes" :key="type.value" :value="type.value">
-                  {{ type.label }}
-                </option>
-              </select>
+              <div class="input-field bg-gray-50 cursor-not-allowed">
+                身份证
+              </div>
             </div>
             <div>
               <label class="label">证件号码</label>
