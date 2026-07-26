@@ -112,6 +112,7 @@ export interface C2CTransferDoReq {
   amount: number
   verify_type: number
   password: string
+  version: number
 }
 
 export interface C2CTransferDoRsp {

@@ -25,6 +25,7 @@ const c2cForm = reactive({
   amount: '',
   verify_type: 1,
   password: '',
+  version: 0,
 })
 
 const bank2cForm = reactive({
@@ -119,6 +120,7 @@ const c2cTransfer = async () => {
       amount: amountInCents,
       verify_type: c2cForm.verify_type,
       password: c2cForm.password,
+      version: c2cForm.version,
     })
 
     if (doResponse.is_repeat === 1) {
@@ -310,6 +312,14 @@ const c2bankWithdraw = async () => {
               placeholder="请输入转账金额（元）"
               @input="c2cForm.amount = formatAmount(c2cForm.amount)"
             />
+          </div>
+
+          <div>
+            <label class="label">入账方式</label>
+            <select v-model="c2cForm.version" class="input-field">
+              <option :value="0">同步入账</option>
+              <option :value="1">异步入账</option>
+            </select>
           </div>
 
           <div>
