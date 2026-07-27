@@ -70,6 +70,7 @@ const targetUserId = ref('')
 const transferAmount = ref('0.01')
 const testVersion = ref(0)
 const testDuration = ref(30)
+const testMode = ref<'many_to_one' | 'one_to_many'>('many_to_one')
 
 const testUsers = ref<TestUser[]>([])
 const generatingUsers = ref(false)
@@ -354,8 +355,12 @@ const runTest = async () => {
     showToast('请先生成测试用户', 'error')
     return
   }
-  if (!targetUserId.value) {
+  if (testMode.value === 'many_to_one' && !targetUserId.value) {
     showToast('请输入目标用户ID', 'error')
+    return
+  }
+  if (testMode.value === 'one_to_many' && testUsers.value.length < 2) {
+    showToast('一对多模式需要至少2个测试用户', 'error')
     return
   }
   if (!transferAmount.value || parseFloat(transferAmount.value) <= 0) {
@@ -381,8 +386,23 @@ const runTest = async () => {
   const runWorker = async (workerId: number) => {
     activeWorkers.add(workerId)
     while (!stopRequested.value && remainingTime.value > 0) {
-      const user = users[Math.floor(Math.random() * users.length)]
-      const result = await doTransfer(user, targetUserId.value, amountInCents, testVersion.value)
+      let fromUser: TestUser
+      let toUserId: string
+
+      if (testMode.value === 'many_to_one') {
+        fromUser = users[Math.floor(Math.random() * users.length)]
+        toUserId = targetUserId.value
+      } else {
+        const fromIndex = Math.floor(Math.random() * users.length)
+        fromUser = users[fromIndex]
+        let toIndex = Math.floor(Math.random() * users.length)
+        while (toIndex === fromIndex) {
+          toIndex = Math.floor(Math.random() * users.length)
+        }
+        toUserId = users[toIndex].userId
+      }
+
+      const result = await doTransfer(fromUser, toUserId, amountInCents, testVersion.value)
       
       stats.totalRequests++
       if (result.success) {
@@ -519,6 +539,13 @@ onUnmounted(() => {
             
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
+                <label class="label">压测模式</label>
+                <select v-model="testMode" class="input-field" :disabled="isRunning">
+                  <option value="many_to_one">多对一（多个C向一个C转账）</option>
+                  <option value="one_to_many">一对多（一个C向多个C转账）</option>
+                </select>
+              </div>
+              <div v-if="testMode === 'many_to_one'">
                 <label class="label">目标用户ID（收款人）</label>
                 <input
                   v-model="targetUserId"
