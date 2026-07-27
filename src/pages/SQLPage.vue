@@ -6,16 +6,19 @@ interface TableConfig {
   name: string
   primaryKey: string
   primaryKeyType: 'numeric' | 'string'
+  database: string
   description: string
 }
 
 const tables: TableConfig[] = [
-  { name: 't_c_account', primaryKey: 'uid', primaryKeyType: 'numeric', description: 'C账户表(用户)' },
-  { name: 't_c_account_log', primaryKey: 'id', primaryKeyType: 'numeric', description: '用户流水日志表' },
-  { name: 't_b_account', primaryKey: 'uid', primaryKeyType: 'numeric', description: 'B账户表(商户)' },
-  { name: 't_c2c_bill', primaryKey: 'transaction_id', primaryKeyType: 'string', description: 'C2C单据表' },
-  { name: 't_save_bill', primaryKey: 'transaction_id', primaryKeyType: 'string', description: '充值订单表' },
-  { name: 't_pending_c2c_transfer', primaryKey: 'transaction_id', primaryKeyType: 'string', description: '待处理C2C转账表' },
+  { name: 't_c_account', primaryKey: 'uid', primaryKeyType: 'numeric', database: 'account_db', description: 'C账户表(用户)' },
+  { name: 't_c_account_log', primaryKey: 'id', primaryKeyType: 'numeric', database: 'account_db', description: '用户流水日志表' },
+  { name: 't_b_account', primaryKey: 'uid', primaryKeyType: 'numeric', database: 'account_db', description: 'B账户表(商户)' },
+  { name: 't_c2c_bill', primaryKey: 'transaction_id', primaryKeyType: 'string', database: 'account_db', description: 'C2C单据表' },
+  { name: 't_save_bill', primaryKey: 'transaction_id', primaryKeyType: 'string', database: 'account_db', description: '充值订单表' },
+  { name: 't_pending_c2c_transfer', primaryKey: 'transaction_id', primaryKeyType: 'string', database: 'account_db', description: '待处理C2C转账表' },
+  { name: 't_relation', primaryKey: 'user_id', primaryKeyType: 'string', database: 'user_db', description: '用户关联表' },
+  { name: 't_user_info', primaryKey: 'uid', primaryKeyType: 'numeric', database: 'user_db', description: '用户信息表' },
 ]
 
 const inputValue = ref('')
@@ -36,7 +39,7 @@ const generateSql = (table: TableConfig) => {
     formattedValue = `"${value}"`
   }
   
-  outputSql.value = `select * from account_db.${table.name} where ${table.primaryKey}=${formattedValue} limit 2\\G`
+  outputSql.value = `select * from ${table.database}.${table.name} where ${table.primaryKey}=${formattedValue} limit 2\\G`
 }
 
 const copySql = async () => {
@@ -83,7 +86,7 @@ const clearAll = () => {
 
           <div>
             <label class="label block mb-2">选择表</label>
-            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
               <button
                 v-for="table in tables"
                 :key="table.name"
