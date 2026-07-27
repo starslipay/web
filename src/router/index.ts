@@ -47,7 +47,13 @@ const routes: RouteRecordRaw[] = [
     path: '/test',
     name: 'test',
     component: () => import('@/pages/TestPage.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/sql',
+    name: 'sql',
+    component: () => import('@/pages/SQLPage.vue'),
+    meta: { requiresAuth: false },
   },
   {
     path: '/:pathMatch(.*)*',

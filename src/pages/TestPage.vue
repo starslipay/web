@@ -1,14 +1,30 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { useDebugStore } from '@/stores/debug'
+import { ref, reactive, computed, onUnmounted, watch } from 'vue'
 import axios from 'axios'
-import { ArrowLeft, Zap, Users, Clock, TrendingUp, Play, Square, RefreshCw, UserPlus, Target, Timer, BarChart3 } from 'lucide-vue-next'
+import { Users, Clock, Play, Square, RefreshCw, UserPlus, Target, Timer, BarChart3 } from 'lucide-vue-next'
+import { Line } from 'vue-chartjs'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+} from 'chart.js'
 
-const router = useRouter()
-const authStore = useAuthStore()
-const debugStore = useDebugStore()
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+)
 
 interface TestUser {
   userId: string
@@ -89,6 +105,84 @@ const stats = reactive<TestStats>({
 
 const remainingTime = ref(0)
 let testTimer: ReturnType<typeof setInterval> | null = null
+
+const chartDataPoints = ref<{
+  time: string
+  qps: number
+  avgDuration: number
+  successRate: number
+  totalRequests: number
+}[]>([])
+
+const selectedChartParam = ref('qps')
+
+const chartParams = [
+  { value: 'qps', label: 'QPS' },
+  { value: 'avgDuration', label: '平均耗时(ms)' },
+  { value: 'successRate', label: '成功率(%)' },
+  { value: 'totalRequests', label: '累计请求数' },
+]
+
+const chartColors: Record<string, string> = {
+  qps: '#3B82F6',
+  avgDuration: '#EF4444',
+  successRate: '#22C55E',
+  totalRequests: '#8B5CF6',
+}
+
+const chartData = computed(() => ({
+  labels: chartDataPoints.value.map(p => p.time),
+  datasets: [
+    {
+      label: chartParams.find(p => p.value === selectedChartParam.value)?.label || '',
+      data: chartDataPoints.value.map(p => p[selectedChartParam.value as keyof typeof p] as number),
+      borderColor: chartColors[selectedChartParam.value],
+      backgroundColor: `${chartColors[selectedChartParam.value]}20`,
+      fill: true,
+      tension: 0.4,
+      pointRadius: 2,
+      pointHoverRadius: 4,
+    },
+  ],
+}))
+
+const chartOptions = computed(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      display: true,
+      position: 'top' as const,
+    },
+    tooltip: {
+      mode: 'index' as const,
+      intersect: false,
+    },
+  },
+  scales: {
+    x: {
+      title: {
+        display: true,
+        text: '时间(秒)',
+      },
+      grid: {
+        display: false,
+      },
+    },
+    y: {
+      title: {
+        display: true,
+        text: chartParams.find(p => p.value === selectedChartParam.value)?.label || '',
+      },
+      beginAtZero: true,
+    },
+  },
+  interaction: {
+    mode: 'nearest' as const,
+    axis: 'x' as const,
+    intersect: false,
+  },
+}))
 
 const avgDuration = computed(() => {
   if (stats.successCount === 0) return 0
@@ -192,10 +286,6 @@ const generateIdCard = (): string => {
   const seq = String(Math.floor(Math.random() * 9999)).padStart(4, '0')
   const checkCode = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'X'][Math.floor(Math.random() * 11)]
   return `${region}${year}${month}${day}${seq}${checkCode}`
-}
-
-const goBack = () => {
-  router.push('/dashboard')
 }
 
 const generateUsers = async () => {
@@ -348,6 +438,7 @@ const resetStats = () => {
   stats.maxDuration = 0
   stats.minDuration = Infinity
   stats.durations = []
+  chartDataPoints.value = []
 }
 
 const runTest = async () => {
@@ -424,6 +515,14 @@ const runTest = async () => {
 
   testTimer = setInterval(() => {
     remainingTime.value--
+    const elapsed = testDuration.value - remainingTime.value
+    chartDataPoints.value.push({
+      time: `${elapsed}s`,
+      qps: parseFloat(qps.value),
+      avgDuration: avgDuration.value,
+      successRate: parseFloat(successRate.value),
+      totalRequests: stats.totalRequests,
+    })
     if (remainingTime.value <= 0) {
       stopTest()
     }
@@ -458,29 +557,9 @@ onUnmounted(() => {
 <template>
   <div class="min-h-screen p-4 sm:p-6">
     <div class="max-w-6xl mx-auto">
-      <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4 animate-fade-in">
-        <div class="flex items-center gap-4">
-          <button
-            @click="goBack"
-            class="p-2 hover:bg-white/10 text-white rounded-lg transition-colors"
-          >
-            <ArrowLeft class="w-5 h-5" />
-          </button>
-          <h1 class="text-2xl font-bold text-white">压测中心</h1>
-        </div>
-        
-        <button
-          @click="debugStore.toggleDebugMode"
-          :class="[
-            'flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all',
-            debugStore.isDebugMode
-              ? 'bg-yellow-400 text-yellow-900 shadow-lg shadow-yellow-400/30'
-              : 'bg-white/10 text-white hover:bg-white/20'
-          ]"
-        >
-          <Zap class="w-4 h-4" />
-          {{ debugStore.isDebugMode ? '调试中' : '调试模式' }}
-        </button>
+      <header class="text-center mb-6 sm:mb-8 animate-fade-in">
+        <h1 class="text-2xl sm:text-3xl font-bold text-white">压测中心</h1>
+        <p class="text-white/60 mt-2">C2C转账性能测试工具</p>
       </header>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -672,6 +751,36 @@ onUnmounted(() => {
               <div class="flex justify-between items-center py-2">
                 <span class="text-gray-500 text-sm">P99 耗时</span>
                 <span class="font-semibold text-orange-600">{{ p99Duration }}ms</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card p-6 animate-slide-up" style="animation-delay: 0.4s">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <BarChart3 class="w-5 h-5 text-primary-600" />
+              实时趋势图
+            </h2>
+            
+            <div class="flex gap-2 mb-4">
+              <button
+                v-for="param in chartParams"
+                :key="param.value"
+                @click="selectedChartParam = param.value"
+                :class="[
+                  'px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
+                  selectedChartParam === param.value
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ]"
+              >
+                {{ param.label }}
+              </button>
+            </div>
+
+            <div class="h-64">
+              <Line v-if="chartDataPoints.length > 0" :data="chartData" :options="chartOptions" />
+              <div v-else class="h-full flex items-center justify-center text-gray-400">
+                开始压测后将显示实时趋势图
               </div>
             </div>
           </div>
