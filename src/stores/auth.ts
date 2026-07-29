@@ -21,6 +21,7 @@ export interface UserAccount {
   name: string
   phone: string
   userToken: string
+  businessInfo: string
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -62,6 +63,7 @@ export const useAuthStore = defineStore('auth', () => {
       existing.name = account.name
       existing.phone = account.phone
       existing.userToken = account.userToken
+      existing.businessInfo = account.businessInfo
       saveUserAccounts()
     }
   }
@@ -147,11 +149,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   const login = async (req: GetUserTokenReq) => {
     try {
+      setBusinessInfo(generateBusinessInfo())
       const response = await payGateApi.getUserToken(req)
       userId.value = response.user_id
       localStorage.setItem('userId', response.user_id)
       setToken(response.user_token)
-      setBusinessInfo(generateBusinessInfo())
       password.value = req.password || ''
       
       try {
@@ -161,6 +163,7 @@ export const useAuthStore = defineStore('auth', () => {
           name: info.name,
           phone: info.phone,
           userToken: response.user_token,
+          businessInfo: businessInfo.value,
         })
       } catch {
         addUserAccount({
@@ -168,6 +171,7 @@ export const useAuthStore = defineStore('auth', () => {
           name: response.user_id,
           phone: '',
           userToken: response.user_token,
+          businessInfo: businessInfo.value,
         })
       }
       
@@ -193,7 +197,7 @@ export const useAuthStore = defineStore('auth', () => {
     userId.value = newUserId
     localStorage.setItem('userId', newUserId)
     setToken(account.userToken)
-    setBusinessInfo(generateBusinessInfo())
+    setBusinessInfo(account.businessInfo)
     userInfo.value = null
     balanceInfo.value = null
     
