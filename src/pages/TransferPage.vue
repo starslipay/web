@@ -113,45 +113,70 @@ const c2cTransfer = async () => {
   const count = Math.max(1, parseInt(concurrency.value.toString()) || 1)
   
   try {
-    const promises = Array.from({ length: count }, async (_, index) => {
-      try {
-        const preResponse = await payGateApi.c2cTransferPre({ buyer_user_id: c2cForm.buyer_user_id })
-        
-        const amountInCents = Math.round(parseFloat(c2cForm.amount) * 100)
-        
-        const doResponse = await payGateApi.c2cTransferDo({
-          transaction_id: preResponse.transaction_id,
-          buyer_user_id: c2cForm.buyer_user_id,
-          seller_user_id: c2cForm.seller_user_id,
-          amount: amountInCents,
-          verify_type: c2cForm.verify_type,
-          password: c2cForm.password,
-          version: c2cForm.version,
-        })
+    if (count === 1) {
+      const preResponse = await payGateApi.c2cTransferPre({ buyer_user_id: c2cForm.buyer_user_id })
+      
+      const amountInCents = Math.round(parseFloat(c2cForm.amount) * 100)
+      
+      const doResponse = await payGateApi.c2cTransferDo({
+        transaction_id: preResponse.transaction_id,
+        buyer_user_id: c2cForm.buyer_user_id,
+        seller_user_id: c2cForm.seller_user_id,
+        amount: amountInCents,
+        verify_type: c2cForm.verify_type,
+        password: c2cForm.password,
+        version: c2cForm.version,
+      })
 
-        if (doResponse.is_repeat === 1) {
-          return { success: false, message: `第${index + 1}笔交易已重复提交` }
-        }
-        return { success: true, message: `第${index + 1}笔转账成功` }
-      } catch (error) {
-        const msg = (error as Error).message || `第${index + 1}笔转账失败`
-        return { success: false, message: msg }
+      if (doResponse.is_repeat === 1) {
+        showToast('交易已重复提交', 'error')
+      } else {
+        showToast('转账成功', 'success')
       }
-    })
-
-    const results = await Promise.all(promises)
-    const successCount = results.filter(r => r.success).length
-    
-    if (successCount === count) {
-      showToast(`全部${count}笔转账成功`, 'success')
-    } else if (successCount === 0) {
-      showToast(`全部${count}笔转账失败`, 'error')
     } else {
-      showToast(`${successCount}/${count}笔转账成功`, 'warning')
+      const promises = Array.from({ length: count }, async (_, index) => {
+        try {
+          const preResponse = await payGateApi.c2cTransferPre({ buyer_user_id: c2cForm.buyer_user_id })
+          
+          const amountInCents = Math.round(parseFloat(c2cForm.amount) * 100)
+          
+          const doResponse = await payGateApi.c2cTransferDo({
+            transaction_id: preResponse.transaction_id,
+            buyer_user_id: c2cForm.buyer_user_id,
+            seller_user_id: c2cForm.seller_user_id,
+            amount: amountInCents,
+            verify_type: c2cForm.verify_type,
+            password: c2cForm.password,
+            version: c2cForm.version,
+          })
+
+          if (doResponse.is_repeat === 1) {
+            return { success: false, message: `第${index + 1}笔交易已重复提交` }
+          }
+          return { success: true, message: `第${index + 1}笔转账成功` }
+        } catch (error) {
+          const msg = (error as Error).message || `第${index + 1}笔转账失败`
+          return { success: false, message: msg }
+        }
+      })
+
+      const results = await Promise.all(promises)
+      const successCount = results.filter(r => r.success).length
+      
+      if (successCount === count) {
+        showToast(`全部${count}笔转账成功`, 'success')
+      } else if (successCount === 0) {
+        showToast(`全部${count}笔转账失败`, 'error')
+      } else {
+        showToast(`${successCount}/${count}笔转账成功`, 'warning')
+      }
     }
     
     await authStore.getUserBalance()
     resetC2C()
+  } catch (error) {
+    const msg = (error as Error).message || '转账失败'
+    showToast(msg, 'error')
   } finally {
     loading.value = false
   }
@@ -167,45 +192,70 @@ const bank2cTransfer = async () => {
   const count = Math.max(1, parseInt(concurrency.value.toString()) || 1)
   
   try {
-    const promises = Array.from({ length: count }, async (_, index) => {
-      try {
-        const preResponse = await payGateApi.bank2cPre({ user_id: bank2cForm.user_id })
-        
-        const amountInCents = Math.round(parseFloat(bank2cForm.amount) * 100)
-        
-        const doResponse = await payGateApi.bank2cDo({
-          transaction_id: preResponse.transaction_id,
-          user_id: bank2cForm.user_id,
-          bank_type: bank2cForm.bank_type,
-          amount: amountInCents,
-          desc: bank2cForm.desc,
-          verify_type: bank2cForm.verify_type,
-          password: bank2cForm.password,
-        })
+    if (count === 1) {
+      const preResponse = await payGateApi.bank2cPre({ user_id: bank2cForm.user_id })
+      
+      const amountInCents = Math.round(parseFloat(bank2cForm.amount) * 100)
+      
+      const doResponse = await payGateApi.bank2cDo({
+        transaction_id: preResponse.transaction_id,
+        user_id: bank2cForm.user_id,
+        bank_type: bank2cForm.bank_type,
+        amount: amountInCents,
+        desc: bank2cForm.desc,
+        verify_type: bank2cForm.verify_type,
+        password: bank2cForm.password,
+      })
 
-        if (doResponse.is_repeat === 1) {
-          return { success: false, message: `第${index + 1}笔交易已重复提交` }
-        }
-        return { success: true, message: `第${index + 1}笔充值成功` }
-      } catch (error) {
-        const msg = (error as Error).message || `第${index + 1}笔充值失败`
-        return { success: false, message: msg }
+      if (doResponse.is_repeat === 1) {
+        showToast('交易已重复提交', 'error')
+      } else {
+        showToast('充值成功', 'success')
       }
-    })
-
-    const results = await Promise.all(promises)
-    const successCount = results.filter(r => r.success).length
-    
-    if (successCount === count) {
-      showToast(`全部${count}笔充值成功`, 'success')
-    } else if (successCount === 0) {
-      showToast(`全部${count}笔充值失败`, 'error')
     } else {
-      showToast(`${successCount}/${count}笔充值成功`, 'warning')
+      const promises = Array.from({ length: count }, async (_, index) => {
+        try {
+          const preResponse = await payGateApi.bank2cPre({ user_id: bank2cForm.user_id })
+          
+          const amountInCents = Math.round(parseFloat(bank2cForm.amount) * 100)
+          
+          const doResponse = await payGateApi.bank2cDo({
+            transaction_id: preResponse.transaction_id,
+            user_id: bank2cForm.user_id,
+            bank_type: bank2cForm.bank_type,
+            amount: amountInCents,
+            desc: bank2cForm.desc,
+            verify_type: bank2cForm.verify_type,
+            password: bank2cForm.password,
+          })
+
+          if (doResponse.is_repeat === 1) {
+            return { success: false, message: `第${index + 1}笔交易已重复提交` }
+          }
+          return { success: true, message: `第${index + 1}笔充值成功` }
+        } catch (error) {
+          const msg = (error as Error).message || `第${index + 1}笔充值失败`
+          return { success: false, message: msg }
+        }
+      })
+
+      const results = await Promise.all(promises)
+      const successCount = results.filter(r => r.success).length
+      
+      if (successCount === count) {
+        showToast(`全部${count}笔充值成功`, 'success')
+      } else if (successCount === 0) {
+        showToast(`全部${count}笔充值失败`, 'error')
+      } else {
+        showToast(`${successCount}/${count}笔充值成功`, 'warning')
+      }
     }
     
     await authStore.getUserBalance()
     resetBank2C()
+  } catch (error) {
+    const msg = (error as Error).message || '充值失败'
+    showToast(msg, 'error')
   } finally {
     loading.value = false
   }
@@ -221,45 +271,70 @@ const c2bankWithdraw = async () => {
   const count = Math.max(1, parseInt(concurrency.value.toString()) || 1)
   
   try {
-    const promises = Array.from({ length: count }, async (_, index) => {
-      try {
-        const preResponse = await payGateApi.c2bankPre({ user_id: c2bankForm.user_id })
+    if (count === 1) {
+      const preResponse = await payGateApi.c2bankPre({ user_id: c2bankForm.user_id })
 
-        const amountInCents = Math.round(parseFloat(c2bankForm.amount) * 100)
+      const amountInCents = Math.round(parseFloat(c2bankForm.amount) * 100)
 
-        const doResponse = await payGateApi.c2bankDo({
-          transaction_id: preResponse.transaction_id,
-          user_id: c2bankForm.user_id,
-          bank_type: c2bankForm.bank_type,
-          amount: amountInCents,
-          desc: c2bankForm.desc,
-          verify_type: c2bankForm.verify_type,
-          password: c2bankForm.password,
-        })
+      const doResponse = await payGateApi.c2bankDo({
+        transaction_id: preResponse.transaction_id,
+        user_id: c2bankForm.user_id,
+        bank_type: c2bankForm.bank_type,
+        amount: amountInCents,
+        desc: c2bankForm.desc,
+        verify_type: c2bankForm.verify_type,
+        password: c2bankForm.password,
+      })
 
-        if (doResponse.is_repeat === 1) {
-          return { success: false, message: `第${index + 1}笔交易已重复提交` }
-        }
-        return { success: true, message: `第${index + 1}笔提现成功` }
-      } catch (error) {
-        const msg = (error as Error).message || `第${index + 1}笔提现失败`
-        return { success: false, message: msg }
+      if (doResponse.is_repeat === 1) {
+        showToast('交易已重复提交', 'error')
+      } else {
+        showToast('提现成功', 'success')
       }
-    })
-
-    const results = await Promise.all(promises)
-    const successCount = results.filter(r => r.success).length
-    
-    if (successCount === count) {
-      showToast(`全部${count}笔提现成功`, 'success')
-    } else if (successCount === 0) {
-      showToast(`全部${count}笔提现失败`, 'error')
     } else {
-      showToast(`${successCount}/${count}笔提现成功`, 'warning')
+      const promises = Array.from({ length: count }, async (_, index) => {
+        try {
+          const preResponse = await payGateApi.c2bankPre({ user_id: c2bankForm.user_id })
+
+          const amountInCents = Math.round(parseFloat(c2bankForm.amount) * 100)
+
+          const doResponse = await payGateApi.c2bankDo({
+            transaction_id: preResponse.transaction_id,
+            user_id: c2bankForm.user_id,
+            bank_type: c2bankForm.bank_type,
+            amount: amountInCents,
+            desc: c2bankForm.desc,
+            verify_type: c2bankForm.verify_type,
+            password: c2bankForm.password,
+          })
+
+          if (doResponse.is_repeat === 1) {
+            return { success: false, message: `第${index + 1}笔交易已重复提交` }
+          }
+          return { success: true, message: `第${index + 1}笔提现成功` }
+        } catch (error) {
+          const msg = (error as Error).message || `第${index + 1}笔提现失败`
+          return { success: false, message: msg }
+        }
+      })
+
+      const results = await Promise.all(promises)
+      const successCount = results.filter(r => r.success).length
+      
+      if (successCount === count) {
+        showToast(`全部${count}笔提现成功`, 'success')
+      } else if (successCount === 0) {
+        showToast(`全部${count}笔提现失败`, 'error')
+      } else {
+        showToast(`${successCount}/${count}笔提现成功`, 'warning')
+      }
     }
     
     await authStore.getUserBalance()
     resetC2Bank()
+  } catch (error) {
+    const msg = (error as Error).message || '提现失败'
+    showToast(msg, 'error')
   } finally {
     loading.value = false
   }
