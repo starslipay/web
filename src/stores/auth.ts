@@ -150,7 +150,10 @@ export const useAuthStore = defineStore('auth', () => {
   const login = async (req: GetUserTokenReq) => {
     try {
       setBusinessInfo(generateBusinessInfo())
-      const response = await payGateApi.getUserToken(req)
+      const response = await payGateApi.getUserToken({
+        ...req,
+        business_info: businessInfo.value,
+      })
       userId.value = response.user_id
       localStorage.setItem('userId', response.user_id)
       setToken(response.user_token)

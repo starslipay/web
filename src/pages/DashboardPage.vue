@@ -152,7 +152,7 @@ onUnmounted(() => {
             ]"
           >
             <Clock :class="['w-4 h-4', isTokenWarning ? 'text-red-300' : '']" />
-            <span>会话 {{ tokenCountdown }}</span>
+            <span>登录状态时效 {{ tokenCountdown }}</span>
           </div>
           
           <button
