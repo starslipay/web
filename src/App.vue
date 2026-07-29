@@ -10,6 +10,10 @@ const handleAuthExpired = () => {
   showExpiredModal.value = true
 }
 
+const goToLogin = () => {
+  window.location.href = '/login'
+}
+
 onMounted(() => {
   window.addEventListener('auth-expired', handleAuthExpired)
 })
@@ -34,11 +38,13 @@ onUnmounted(() => {
             <AlertCircle class="w-8 h-8 text-red-500" />
           </div>
           <h3 class="text-xl font-bold text-gray-800 mb-2">登录已过期</h3>
-          <p class="text-gray-500 mb-4">您的登录状态已失效，请重新登录</p>
-          <div class="flex items-center justify-center gap-2 text-sm text-gray-400">
-            <span class="inline-block w-2 h-2 bg-gray-300 rounded-full animate-pulse"></span>
-            <span>正在跳转到登录页面...</span>
-          </div>
+          <p class="text-gray-500 mb-6">您的登录状态已失效，请重新登录</p>
+          <button
+            @click="goToLogin"
+            class="w-full py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors"
+          >
+            确认
+          </button>
         </div>
       </div>
     </Transition>

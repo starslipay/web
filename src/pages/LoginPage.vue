@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDebugStore } from '@/stores/debug'
 import { Server, User, Lock, Eye, EyeOff, UserPlus, Zap } from 'lucide-vue-next'
 
 const router = useRouter()
-const route = useRoute()
 const authStore = useAuthStore()
 const debugStore = useDebugStore()
 
@@ -35,13 +34,6 @@ const showToast = (message: string, type: 'success' | 'error' | 'warning') => {
 const goToRegister = () => {
   router.push('/register')
 }
-
-onMounted(() => {
-  if (route.query.expired === '1') {
-    showToast('登录已过期，请重新登录', 'warning')
-    router.replace({ path: '/login' })
-  }
-})
 
 const handleLogin = async () => {
   if (!loginForm.user_id || !loginForm.password) {

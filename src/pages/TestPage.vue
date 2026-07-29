@@ -57,13 +57,16 @@ const apiBase = axios.create({
   },
 })
 
-const postApi = async (url: string, data: any, token?: string) => {
+const postApi = async (url: string, data: any, token?: string, userId?: string) => {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   }
   if (token) {
     headers['UserToken'] = token
     headers['BusinessInfo'] = 'web_stress_test'
+  }
+  if (userId) {
+    headers['UserId'] = userId
   }
   const startTime = Date.now()
   try {
@@ -332,7 +335,7 @@ const createUser = async (userId: string, password: string): Promise<TestUser | 
       address: generateAddress(),
       id_type: 1,
       id_card: generateIdCard(),
-    })
+    }, undefined, userId)
     if (!regResult.success) {
       console.warn('注册失败:', userId, regResult.error)
       return null
@@ -341,7 +344,7 @@ const createUser = async (userId: string, password: string): Promise<TestUser | 
     const tokenResult = await postApi('/api/pay_gate/get_user_token', {
       user_id: userId,
       password,
-    })
+    }, undefined, userId)
     if (!tokenResult.success) {
       console.warn('获取token失败:', userId, tokenResult.error)
       return null
@@ -350,7 +353,8 @@ const createUser = async (userId: string, password: string): Promise<TestUser | 
     const preResult = await postApi(
       '/api/pay_gate/bank2c_pre',
       { user_id: userId },
-      tokenResult.data.user_token
+      tokenResult.data.user_token,
+      userId
     )
     if (!preResult.success) {
       console.warn('充值pre失败:', userId, preResult.error)
@@ -368,7 +372,8 @@ const createUser = async (userId: string, password: string): Promise<TestUser | 
         verify_type: 1,
         password: '123456',
       },
-      tokenResult.data.user_token
+      tokenResult.data.user_token,
+      userId
     )
     if (!doResult.success) {
       console.warn('充值do失败:', userId, doResult.error)
@@ -378,7 +383,8 @@ const createUser = async (userId: string, password: string): Promise<TestUser | 
     const balanceResult = await postApi(
       '/api/pay_gate/get_user_balance_info',
       { user_id: userId },
-      tokenResult.data.user_token
+      tokenResult.data.user_token,
+      userId
     )
 
     return {
@@ -399,7 +405,8 @@ const doTransfer = async (fromUser: TestUser, toUserId: string, amount: number, 
     const preResult = await postApi(
       '/api/pay_gate/c2c_transfer_pre',
       { buyer_user_id: fromUser.userId },
-      fromUser.userToken
+      fromUser.userToken,
+      fromUser.userId
     )
     if (!preResult.success) {
       return { success: false, duration: Date.now() - startTime, error: preResult.error || 'pre失败' }
@@ -416,7 +423,8 @@ const doTransfer = async (fromUser: TestUser, toUserId: string, amount: number, 
         password: fromUser.password,
         version,
       },
-      fromUser.userToken
+      fromUser.userToken,
+      fromUser.userId
     )
 
     const duration = Date.now() - startTime

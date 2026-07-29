@@ -38,9 +38,6 @@ const handleAuthExpired = async () => {
     console.warn('Failed to handle auth expired:', e)
   }
   window.dispatchEvent(new CustomEvent('auth-expired'))
-  setTimeout(() => {
-    window.location.href = '/login?expired=1'
-  }, 2000)
 }
 
 instance.interceptors.request.use(
@@ -55,6 +52,10 @@ instance.interceptors.request.use(
     const businessInfo = localStorage.getItem('businessInfo')
     if (businessInfo) {
       config.headers['BusinessInfo'] = businessInfo
+    }
+    const userId = localStorage.getItem('userId')
+    if (userId) {
+      config.headers['UserId'] = userId
     }
     config.meta = config.meta || {}
     config.meta.requestStartTime = Date.now()
