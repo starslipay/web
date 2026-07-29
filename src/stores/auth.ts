@@ -3,7 +3,8 @@ import { ref, computed } from 'vue'
 import { payGateApi } from '@/api/pay_gate'
 import type { RegUserReq, GetUserInfoRsp, GetUserBalanceInfoRsp, GetUserTokenReq } from '@/api/types'
 
-const TOKEN_EXPIRY_MINUTES = 60
+// 过期时间，单位：秒
+const TOKEN_EXPIRY_SECONDS = 3600
 
 export interface UserAccount {
   userId: string
@@ -68,7 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (timestamp > 1e12) {
       timestamp = Math.floor(timestamp / 1000)
     }
-    return timestamp + TOKEN_EXPIRY_MINUTES * 60
+    return timestamp + TOKEN_EXPIRY_SECONDS
   }
 
   const startTokenTimer = () => {
