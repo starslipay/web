@@ -16,6 +16,9 @@ interface ApiResponse<T = any> {
   data: T
 }
 
+const AUTH_EXPIRED_CODE = 100001006
+let isRedirecting = false
+
 const instance = axios.create({
   baseURL: '',
   timeout: 10000,
@@ -24,14 +27,34 @@ const instance = axios.create({
   },
 })
 
+const handleAuthExpired = async () => {
+  if (isRedirecting) return
+  isRedirecting = true
+  try {
+    const { useAuthStore } = await import('@/stores/auth')
+    const authStore = useAuthStore()
+    authStore.logout()
+  } catch (e) {
+    console.warn('Failed to handle auth expired:', e)
+  }
+  window.dispatchEvent(new CustomEvent('auth-expired'))
+  setTimeout(() => {
+    window.location.href = '/login?expired=1'
+  }, 2000)
+}
+
 instance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    if (!config.headers) {
+      config.headers = {} as any
+    }
     const userToken = localStorage.getItem('userToken')
     if (userToken) {
-      if (!config.headers) {
-        config.headers = {} as any
-      }
-      config.headers['user-token'] = userToken
+      config.headers['UserToken'] = userToken
+    }
+    const businessInfo = localStorage.getItem('businessInfo')
+    if (businessInfo) {
+      config.headers['BusinessInfo'] = businessInfo
     }
     config.meta = config.meta || {}
     config.meta.requestStartTime = Date.now()
@@ -54,6 +77,13 @@ instance.interceptors.response.use(
       return result.data
     } else {
       recordRequestLog(response.config.method?.toUpperCase() || 'GET', response.config.url || '', requestBody, result, response.status, duration, result.msg)
+      
+      if (result.code === AUTH_EXPIRED_CODE) {
+        handleAuthExpired()
+        const error = new Error(result.msg || '登录状态已失效')
+        return Promise.reject(error)
+      }
+      
       const error = new Error(result.msg || '请求失败')
       return Promise.reject(error)
     }
@@ -69,6 +99,9 @@ instance.interceptors.response.use(
     let errorMessage = error.message || '网络错误'
     
     if (responseData && typeof responseData === 'object') {
+      if (responseData.code === AUTH_EXPIRED_CODE) {
+        handleAuthExpired()
+      }
       if (responseData.msg) {
         errorMessage = responseData.msg
       } else if (responseData.message) {

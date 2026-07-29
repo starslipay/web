@@ -62,7 +62,8 @@ const postApi = async (url: string, data: any, token?: string) => {
     'Content-Type': 'application/json',
   }
   if (token) {
-    headers['user-token'] = token
+    headers['UserToken'] = token
+    headers['BusinessInfo'] = 'web_stress_test'
   }
   const startTime = Date.now()
   try {
