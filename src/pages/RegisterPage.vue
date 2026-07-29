@@ -90,7 +90,6 @@ const handleRegister = async () => {
     await authStore.login({
       user_id: registerForm.user_id,
       password: registerForm.password,
-      business_info: 'web_register',
     })
     
     await authStore.getUserInfo()

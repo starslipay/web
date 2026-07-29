@@ -63,7 +63,7 @@ export interface GetUserBalanceInfoRsp {
 export interface GetUserTokenReq {
   user_id: string
   password: string
-  business_info: string
+  business_info?: string
 }
 
 export interface GetUserTokenRsp {

@@ -46,7 +46,6 @@ const handleLogin = async () => {
     await authStore.login({
       user_id: loginForm.user_id,
       password: loginForm.password,
-      business_info: 'web_login',
     })
     await authStore.getUserInfo()
     await authStore.getUserBalance()

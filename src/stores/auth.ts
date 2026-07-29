@@ -6,6 +6,16 @@ import type { RegUserReq, GetUserInfoRsp, GetUserBalanceInfoRsp, GetUserTokenReq
 // 过期时间，单位：秒
 const TOKEN_EXPIRY_SECONDS = 3600
 
+// 生成32位随机字符串
+const generateBusinessInfo = (): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  let result = ''
+  for (let i = 0; i < 32; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return result
+}
+
 export interface UserAccount {
   userId: string
   name: string
@@ -141,7 +151,7 @@ export const useAuthStore = defineStore('auth', () => {
       userId.value = response.user_id
       localStorage.setItem('userId', response.user_id)
       setToken(response.user_token)
-      setBusinessInfo(req.business_info || '')
+      setBusinessInfo(generateBusinessInfo())
       password.value = req.password || ''
       
       try {
@@ -183,7 +193,7 @@ export const useAuthStore = defineStore('auth', () => {
     userId.value = newUserId
     localStorage.setItem('userId', newUserId)
     setToken(account.userToken)
-    setBusinessInfo('web_switch')
+    setBusinessInfo(generateBusinessInfo())
     userInfo.value = null
     balanceInfo.value = null
     
