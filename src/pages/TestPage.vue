@@ -57,13 +57,15 @@ const apiBase = axios.create({
   },
 })
 
+const STRESS_BUSINESS_INFO = 'web_stress_test'
+
 const postApi = async (url: string, data: any, token?: string, userId?: string) => {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'BusinessInfo': STRESS_BUSINESS_INFO,
   }
   if (token) {
     headers['UserToken'] = token
-    headers['BusinessInfo'] = 'web_stress_test'
   }
   if (userId) {
     headers['UserId'] = userId
@@ -344,6 +346,7 @@ const createUser = async (userId: string, password: string): Promise<TestUser | 
     const tokenResult = await postApi('/api/pay_gate/get_user_token', {
       user_id: userId,
       password,
+      business_info: STRESS_BUSINESS_INFO,
     }, undefined, userId)
     if (!tokenResult.success) {
       console.warn('获取token失败:', userId, tokenResult.error)
