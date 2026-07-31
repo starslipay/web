@@ -69,12 +69,11 @@ const formatBalance = (balance: number) => {
   return yuan.toLocaleString('zh-CN', { minimumFractionDigits: 2 })
 }
 
-// 生成32位随机订单号
+// 生成32位随机数字订单号
 const generateOutOrderNo = (): string => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
   let result = ''
   for (let i = 0; i < 32; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length))
+    result += Math.floor(Math.random() * 10).toString()
   }
   return result
 }
