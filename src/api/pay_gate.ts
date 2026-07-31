@@ -28,6 +28,12 @@ import type {
   C2BankDoRsp,
   GetC2CBillReq,
   GetC2CBillRsp,
+  PayPreReq,
+  PayPreRsp,
+  BanPayReq,
+  BanPayRsp,
+  GetOrderInfoReq,
+  GetOrderInfoRsp,
 } from './types'
 
 export const payGateApi = {
@@ -85,5 +91,19 @@ export const payGateApi = {
 
   getC2CBill: async (req: GetC2CBillReq): Promise<GetC2CBillRsp> => {
     return api.post('/api/pay_gate/get_c2c_bill', req) as unknown as GetC2CBillRsp
+  },
+
+  // ============ 商城支付相关接口 ============
+
+  payPre: async (req: PayPreReq): Promise<PayPreRsp> => {
+    return api.post('/api/pay_gate/pay_re', req) as unknown as PayPreRsp
+  },
+
+  banPay: async (req: BanPayReq): Promise<BanPayRsp> => {
+    return api.post('/api/pay_gate/ban_pay', req) as unknown as BanPayRsp
+  },
+
+  getOrderInfo: async (req: GetOrderInfoReq): Promise<GetOrderInfoRsp> => {
+    return api.post('/api/pay_gate/get_order_info', req) as unknown as GetOrderInfoRsp
   },
 }

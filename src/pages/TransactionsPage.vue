@@ -64,6 +64,7 @@ const getBizTypeText = (type: number) => {
     1: 'Bank2C充值',
     2: 'C2C转账',
     3: 'C2Bank提现',
+    4: '商城支付',
   }
   return texts[type] || '未知'
 }

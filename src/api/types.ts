@@ -184,3 +184,46 @@ export interface GetC2CBillRsp {
   amount: number
   desc: string
 }
+
+// ============ 商城支付相关接口 ============
+
+export interface PayPreReq {
+  user_id?: string
+  merchant_id?: string
+}
+
+export interface PayPreRsp {
+  user_id: string
+  transaction_id: string
+}
+
+export interface BanPayReq {
+  transaction_id?: string
+  out_order_no?: string
+  merchant_id?: string
+  user_id?: string
+  amount?: number
+  verify_type?: number
+  password?: string
+}
+
+export interface BanPayRsp {
+  transaction_id: string
+  user_id: string
+  order_success_token: string
+}
+
+export interface GetOrderInfoReq {
+  transaction_id: string
+}
+
+export interface GetOrderInfoRsp {
+  transaction_id: string
+  out_order_no: string
+  merchant_id: string
+  merchant_name: string
+  user_id: string
+  amount: number
+  pay_time: string
+  trade_state: number
+}
