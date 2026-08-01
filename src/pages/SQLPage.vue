@@ -13,12 +13,16 @@ interface TableConfig {
 const tables: TableConfig[] = [
   { name: 't_c_account', primaryKey: 'uid', primaryKeyType: 'numeric', database: 'account_db', description: 'C账户表(用户)' },
   { name: 't_c_account_log', primaryKey: 'id', primaryKeyType: 'numeric', database: 'account_db', description: '用户流水日志表' },
-  { name: 't_b_account', primaryKey: 'uid', primaryKeyType: 'numeric', database: 'account_db', description: 'B账户表(商户)' },
+  { name: 't_b_account', primaryKey: 'merchant_uid', primaryKeyType: 'numeric', database: 'account_db', description: 'B账户表(商户)' },
+  { name: 't_b_account_log', primaryKey: 'id', primaryKeyType: 'numeric', database: 'account_db', description: '商户流水日志表' },
   { name: 't_c2c_bill', primaryKey: 'transaction_id', primaryKeyType: 'string', database: 'account_db', description: 'C2C单据表' },
+  { name: 't_c2b_bill', primaryKey: 'transaction_id', primaryKeyType: 'string', database: 'account_db', description: 'C2B单据表' },
+  { name: 't_c2b_pending_transfer', primaryKey: 'transaction_id', primaryKeyType: 'string', database: 'account_db', description: '待处理C2B转账表' },
   { name: 't_save_bill', primaryKey: 'transaction_id', primaryKeyType: 'string', database: 'account_db', description: '充值订单表' },
   { name: 't_pending_c2c_transfer', primaryKey: 'transaction_id', primaryKeyType: 'string', database: 'account_db', description: '待处理C2C转账表' },
   { name: 't_relation', primaryKey: 'user_id', primaryKeyType: 'string', database: 'user_db', description: '用户关联表' },
   { name: 't_user_info', primaryKey: 'uid', primaryKeyType: 'numeric', database: 'user_db', description: '用户信息表' },
+  { name: 't_order', primaryKey: 'transaction_id', primaryKeyType: 'string', database: 'order_db', description: '订单表' },
 ]
 
 const inputValue = ref('')
