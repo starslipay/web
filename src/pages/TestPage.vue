@@ -90,9 +90,12 @@ const postApi = async (url: string, data: any, token?: string, userId?: string) 
 const userCount = ref(10)
 const targetUserId = ref('')
 const transferAmount = ref('0.01')
+const payAmount = ref('0.01')
 const testVersion = ref(0)
 const testDuration = ref(30)
-const testMode = ref<'many_to_one' | 'one_to_many'>('many_to_one')
+const testMode = ref<'many_to_one' | 'one_to_many' | 'query_balance' | 'pay'>('many_to_one')
+
+const PAY_MERCHANT_ID = '2000000000'
 
 const testUsers = ref<TestUser[]>([])
 const generatingUsers = ref(false)
@@ -442,6 +445,68 @@ const doTransfer = async (fromUser: TestUser, toUserId: string, amount: number, 
   }
 }
 
+const doQueryBalance = async (user: TestUser): Promise<TransferResult> => {
+  const startTime = Date.now()
+  try {
+    const result = await postApi(
+      '/api/pay_gate/get_user_balance_info',
+      { user_id: user.userId },
+      user.userToken,
+      user.userId
+    )
+    const duration = Date.now() - startTime
+    if (result.success) {
+      return { success: true, duration }
+    } else {
+      return { success: false, duration, error: result.error || '查询失败' }
+    }
+  } catch (error: any) {
+    const duration = Date.now() - startTime
+    return { success: false, duration, error: error.message || '异常' }
+  }
+}
+
+const doPay = async (user: TestUser, amount: number): Promise<TransferResult> => {
+  const startTime = Date.now()
+  try {
+    const preResult = await postApi(
+      '/api/pay_gate/pay_re',
+      { user_id: user.userId, merchant_id: PAY_MERCHANT_ID },
+      user.userToken,
+      user.userId
+    )
+    if (!preResult.success) {
+      return { success: false, duration: Date.now() - startTime, error: preResult.error || 'pre失败' }
+    }
+
+    const outOrderNo = generateNumericString(32, 32)
+    const payResult = await postApi(
+      '/api/pay_gate/ban_pay',
+      {
+        transaction_id: preResult.data.transaction_id,
+        out_order_no: outOrderNo,
+        merchant_id: PAY_MERCHANT_ID,
+        user_id: user.userId,
+        amount,
+        verify_type: 1,
+        password: user.password,
+      },
+      user.userToken,
+      user.userId
+    )
+
+    const duration = Date.now() - startTime
+    if (payResult.success) {
+      return { success: true, duration }
+    } else {
+      return { success: false, duration, error: payResult.error || 'pay失败' }
+    }
+  } catch (error: any) {
+    const duration = Date.now() - startTime
+    return { success: false, duration, error: error.message || '异常' }
+  }
+}
+
 const resetStats = () => {
   stats.totalRequests = 0
   stats.successCount = 0
@@ -466,8 +531,12 @@ const runTest = async () => {
     showToast('一对多模式需要至少2个测试用户', 'error')
     return
   }
-  if (!transferAmount.value || parseFloat(transferAmount.value) <= 0) {
+  if (testMode.value !== 'query_balance' && testMode.value !== 'pay' && (!transferAmount.value || parseFloat(transferAmount.value) <= 0)) {
     showToast('请输入有效转账金额', 'error')
+    return
+  }
+  if (testMode.value === 'pay' && (!payAmount.value || parseFloat(payAmount.value) <= 0)) {
+    showToast('请输入有效支付金额', 'error')
     return
   }
   if (testDuration.value < 1) {
@@ -481,6 +550,7 @@ const runTest = async () => {
   remainingTime.value = testDuration.value
 
   const amountInCents = Math.round(parseFloat(transferAmount.value) * 100)
+  const payAmountInCents = Math.round(parseFloat(payAmount.value) * 100)
   const users = testUsers.value
 
   const workerPromises: Promise<void>[] = []
@@ -489,24 +559,34 @@ const runTest = async () => {
   const runWorker = async (workerId: number) => {
     activeWorkers.add(workerId)
     while (!stopRequested.value && remainingTime.value > 0) {
-      let fromUser: TestUser
-      let toUserId: string
+      let result: TransferResult
 
-      if (testMode.value === 'many_to_one') {
-        fromUser = users[Math.floor(Math.random() * users.length)]
-        toUserId = targetUserId.value
+      if (testMode.value === 'query_balance') {
+        const user = users[Math.floor(Math.random() * users.length)]
+        result = await doQueryBalance(user)
+      } else if (testMode.value === 'pay') {
+        const user = users[Math.floor(Math.random() * users.length)]
+        result = await doPay(user, payAmountInCents)
       } else {
-        const fromIndex = Math.floor(Math.random() * users.length)
-        fromUser = users[fromIndex]
-        let toIndex = Math.floor(Math.random() * users.length)
-        while (toIndex === fromIndex) {
-          toIndex = Math.floor(Math.random() * users.length)
+        let fromUser: TestUser
+        let toUserId: string
+
+        if (testMode.value === 'many_to_one') {
+          fromUser = users[Math.floor(Math.random() * users.length)]
+          toUserId = targetUserId.value
+        } else {
+          const fromIndex = Math.floor(Math.random() * users.length)
+          fromUser = users[fromIndex]
+          let toIndex = Math.floor(Math.random() * users.length)
+          while (toIndex === fromIndex) {
+            toIndex = Math.floor(Math.random() * users.length)
+          }
+          toUserId = users[toIndex].userId
         }
-        toUserId = users[toIndex].userId
+
+        result = await doTransfer(fromUser, toUserId, amountInCents, testVersion.value)
       }
 
-      const result = await doTransfer(fromUser, toUserId, amountInCents, testVersion.value)
-      
       stats.totalRequests++
       if (result.success) {
         stats.successCount++
@@ -571,7 +651,7 @@ onUnmounted(() => {
     <div class="max-w-6xl mx-auto">
       <header class="text-center mb-6 sm:mb-8 animate-fade-in">
         <h1 class="text-2xl sm:text-3xl font-bold text-white">压测中心</h1>
-        <p class="text-white/60 mt-2">C2C转账性能测试工具</p>
+        <p class="text-white/60 mt-2">C2C转账 / 余额查询 / 支付性能测试工具</p>
       </header>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -634,6 +714,8 @@ onUnmounted(() => {
                 <select v-model="testMode" class="input-field" :disabled="isRunning">
                   <option value="many_to_one">多对一（多个C向一个C转账）</option>
                   <option value="one_to_many">一对多（一个C向多个C转账）</option>
+                  <option value="query_balance">查询余额（并发查询余额接口）</option>
+                  <option value="pay">支付（并发压测支付接口）</option>
                 </select>
               </div>
               <div v-if="testMode === 'many_to_one'">
@@ -646,7 +728,7 @@ onUnmounted(() => {
                   :disabled="isRunning"
                 />
               </div>
-              <div>
+              <div v-if="testMode !== 'query_balance' && testMode !== 'pay'">
                 <label class="label">转账金额（元）</label>
                 <input
                   v-model="transferAmount"
@@ -656,7 +738,26 @@ onUnmounted(() => {
                   :disabled="isRunning"
                 />
               </div>
-              <div>
+              <div v-if="testMode === 'pay'">
+                <label class="label">支付金额（元）</label>
+                <input
+                  v-model="payAmount"
+                  type="text"
+                  class="input-field"
+                  placeholder="请输入支付金额"
+                  :disabled="isRunning"
+                />
+              </div>
+              <div v-if="testMode === 'pay'">
+                <label class="label">商户ID</label>
+                <input
+                  :value="PAY_MERCHANT_ID"
+                  type="text"
+                  class="input-field bg-gray-100"
+                  disabled
+                />
+              </div>
+              <div v-if="testMode !== 'query_balance' && testMode !== 'pay'">
                 <label class="label">入账方式</label>
                 <select v-model="testVersion" class="input-field" :disabled="isRunning">
                   <option :value="0">同步入账 (version=0)</option>
