@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onUnmounted, watch } from 'vue'
 import axios from 'axios'
-import { Users, Clock, Play, Square, RefreshCw, UserPlus, Target, Timer, BarChart3 } from 'lucide-vue-next'
+import { Users, Clock, Play, Square, RefreshCw, UserPlus, Target, Timer, BarChart3, ChevronRight } from 'lucide-vue-next'
 import { Line } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -87,13 +87,41 @@ const postApi = async (url: string, data: any, token?: string, userId?: string) 
   }
 }
 
+const getApi = async (url: string, token?: string, userId?: string) => {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'BusinessInfo': STRESS_BUSINESS_INFO,
+  }
+  if (token) {
+    headers['UserToken'] = token
+  }
+  if (userId) {
+    headers['UserId'] = userId
+  }
+  const startTime = Date.now()
+  try {
+    const response = await apiBase.get(url, { headers })
+    const result = response.data
+    const duration = Date.now() - startTime
+    if (result.code === 0) {
+      return { data: result.data, duration, success: true, error: null }
+    } else {
+      return { data: null, duration, success: false, error: result.msg || '请求失败' }
+    }
+  } catch (error: any) {
+    const duration = Date.now() - startTime
+    const msg = error.response?.data?.msg || error.message || '网络错误'
+    return { data: null, duration, success: false, error: msg }
+  }
+}
+
 const userCount = ref(10)
 const targetUserId = ref('')
 const transferAmount = ref('0.01')
 const payAmount = ref('0.01')
 const testVersion = ref(0)
 const testDuration = ref(30)
-const testMode = ref<'many_to_one' | 'one_to_many' | 'query_balance' | 'pay'>('many_to_one')
+const testMode = ref<'many_to_one' | 'one_to_many' | 'query_balance' | 'pay' | 'smoke_test'>('many_to_one')
 
 const PAY_MERCHANT_ID = '2000000000'
 
@@ -101,6 +129,20 @@ const testUsers = ref<TestUser[]>([])
 const generatingUsers = ref(false)
 const isRunning = ref(false)
 const stopRequested = ref(false)
+
+interface SmokeStep {
+  name: string
+  api: string
+  status: 'pending' | 'running' | 'success' | 'fail' | 'skip'
+  duration: number
+  message: string
+  request: any
+  response: any
+  expanded: boolean
+}
+
+const smokeSteps = ref<SmokeStep[]>([])
+const smokeRunning = ref(false)
 
 const stats = reactive<TestStats>({
   totalRequests: 0,
@@ -518,7 +560,226 @@ const resetStats = () => {
   chartDataPoints.value = []
 }
 
+const runSmokeTest = async () => {
+  if (smokeRunning.value) return
+  smokeRunning.value = true
+
+  // 定义全流程步骤（按依赖顺序串联所有接口）
+  const mk = (name: string, api: string): SmokeStep => ({
+    name, api, status: 'pending', duration: 0, message: '', request: null, response: null, expanded: false,
+  })
+  const steps: SmokeStep[] = [
+    mk('健康检查', 'GET /health'),
+    mk('注册用户(买家)', 'POST /reg_user'),
+    mk('获取Token(买家)', 'POST /get_user_token'),
+    mk('注册用户(卖家)', 'POST /reg_user'),
+    mk('获取Token(卖家)', 'POST /get_user_token'),
+    mk('更新用户信息', 'POST /update_user_info'),
+    mk('查询用户信息', 'POST /get_user_info'),
+    mk('银行转C-下单(充值)', 'POST /bank2c_pre'),
+    mk('银行转C-确认(充值)', 'POST /bank2c_do'),
+    mk('查询余额', 'POST /get_user_balance_info'),
+    mk('C2C转账-下单', 'POST /c2c_transfer_pre'),
+    mk('C2C转账-确认', 'POST /c2c_transfer_do'),
+    mk('查询C2C账单', 'POST /get_c2c_bill'),
+    mk('C转银行-下单(提现)', 'POST /c2bank_pre'),
+    mk('C转银行-确认(提现)', 'POST /c2bank_do'),
+    mk('支付-下单', 'POST /pay_re'),
+    mk('余额支付', 'POST /ban_pay'),
+    mk('查询订单信息', 'POST /get_order_info'),
+    mk('关闭/补单', 'POST /close_or_supply_order'),
+    mk('查询用户流水', 'POST /get_user_flow'),
+  ]
+  smokeSteps.value = steps
+
+  // 上下文数据，在步骤间传递
+  const password = '123456'
+  const buyerId = generateNumericString(10, 20)
+  const sellerId = generateNumericString(10, 20)
+  const ctx: Record<string, any> = {}
+  let aborted = false
+
+  // 执行单个步骤：request 为请求参数(值或惰性函数，用于展示)，fn 返回 {success, data, error, duration}
+  const exec = async (
+    index: number,
+    request: any,
+    fn: () => Promise<{ success: boolean; data?: any; error?: any; duration: number }>
+  ) => {
+    const step = steps[index]
+    step.request = typeof request === 'function' ? request() : request
+    step.status = 'running'
+    if (aborted) {
+      step.status = 'skip'
+      step.message = '前置步骤失败，已跳过'
+      return false
+    }
+    try {
+      const res = await fn()
+      step.duration = res.duration
+      step.response = res.success ? res.data : { error: res.error }
+      if (res.success) {
+        step.status = 'success'
+        step.message = '成功'
+        return true
+      } else {
+        step.status = 'fail'
+        step.message = res.error || '失败'
+        aborted = true
+        return false
+      }
+    } catch (e: any) {
+      step.status = 'fail'
+      step.message = e?.message || '异常'
+      step.response = { error: step.message }
+      aborted = true
+      return false
+    }
+  }
+
+  // 1. 健康检查
+  await exec(0, {}, () => getApi('/api/pay_gate/health'))
+
+  // 2. 注册买家
+  const regBuyerReq = {
+    user_id: buyerId, password, name: generateChineseName(), gender: 1, age: 25,
+    phone: generatePhone(), email: generateEmail(), address: generateAddress(), id_type: 1, id_card: generateIdCard(),
+  }
+  await exec(1, regBuyerReq, () => postApi('/api/pay_gate/reg_user', regBuyerReq, undefined, buyerId))
+
+  // 3. 买家Token
+  const tokenBuyerReq = { user_id: buyerId, password, business_info: STRESS_BUSINESS_INFO }
+  await exec(2, tokenBuyerReq, async () => {
+    const r = await postApi('/api/pay_gate/get_user_token', tokenBuyerReq, undefined, buyerId)
+    if (r.success) ctx.buyerToken = r.data.user_token
+    return r
+  })
+
+  // 4. 注册卖家
+  const regSellerReq = {
+    user_id: sellerId, password, name: generateChineseName(), gender: 1, age: 26,
+    phone: generatePhone(), email: generateEmail(), address: generateAddress(), id_type: 1, id_card: generateIdCard(),
+  }
+  await exec(3, regSellerReq, () => postApi('/api/pay_gate/reg_user', regSellerReq, undefined, sellerId))
+
+  // 5. 卖家Token
+  const tokenSellerReq = { user_id: sellerId, password, business_info: STRESS_BUSINESS_INFO }
+  await exec(4, tokenSellerReq, async () => {
+    const r = await postApi('/api/pay_gate/get_user_token', tokenSellerReq, undefined, sellerId)
+    if (r.success) ctx.sellerToken = r.data.user_token
+    return r
+  })
+
+  // 6. 更新用户信息(买家)
+  const updateReq = {
+    user_id: buyerId, name: generateChineseName(), gender: 2, age: 30, address: generateAddress(),
+    phone: generatePhone(), email: generateEmail(), id_type: 1, id_card: generateIdCard(),
+  }
+  await exec(5, updateReq, () => postApi('/api/pay_gate/update_user_info', updateReq, ctx.buyerToken, buyerId))
+
+  // 7. 查询用户信息(买家)
+  const getUserInfoReq = { user_id: buyerId }
+  await exec(6, getUserInfoReq, () => postApi('/api/pay_gate/get_user_info', getUserInfoReq, ctx.buyerToken, buyerId))
+
+  // 8. 充值下单
+  const rechargePreReq = { user_id: buyerId }
+  await exec(7, rechargePreReq, async () => {
+    const r = await postApi('/api/pay_gate/bank2c_pre', rechargePreReq, ctx.buyerToken, buyerId)
+    if (r.success) ctx.rechargeTid = r.data.transaction_id
+    return r
+  })
+
+  // 9. 充值确认
+  const rechargeDoReq = () => ({
+    transaction_id: ctx.rechargeTid, user_id: buyerId, bank_type: 1, amount: 1000000,
+    desc: '冒烟测试充值', verify_type: 1, password,
+  })
+  await exec(8, rechargeDoReq, () => postApi('/api/pay_gate/bank2c_do', rechargeDoReq(), ctx.buyerToken, buyerId))
+
+  // 10. 查询余额
+  const balanceReq = { user_id: buyerId }
+  await exec(9, balanceReq, () => postApi('/api/pay_gate/get_user_balance_info', balanceReq, ctx.buyerToken, buyerId))
+
+  // 11. C2C转账下单
+  const c2cPreReq = { buyer_user_id: buyerId }
+  await exec(10, c2cPreReq, async () => {
+    const r = await postApi('/api/pay_gate/c2c_transfer_pre', c2cPreReq, ctx.buyerToken, buyerId)
+    if (r.success) ctx.c2cTid = r.data.transaction_id
+    return r
+  })
+
+  // 12. C2C转账确认
+  const c2cDoReq = () => ({
+    transaction_id: ctx.c2cTid, buyer_user_id: buyerId, seller_user_id: sellerId,
+    amount: 100, verify_type: 1, password, version: 0,
+  })
+  await exec(11, c2cDoReq, () => postApi('/api/pay_gate/c2c_transfer_do', c2cDoReq(), ctx.buyerToken, buyerId))
+
+  // 13. 查询C2C账单
+  const c2cBillReq = () => ({ transaction_id: ctx.c2cTid })
+  await exec(12, c2cBillReq, () => postApi('/api/pay_gate/get_c2c_bill', c2cBillReq(), ctx.buyerToken, buyerId))
+
+  // 14. 提现下单
+  const withdrawPreReq = { user_id: buyerId }
+  await exec(13, withdrawPreReq, async () => {
+    const r = await postApi('/api/pay_gate/c2bank_pre', withdrawPreReq, ctx.buyerToken, buyerId)
+    if (r.success) ctx.withdrawTid = r.data.transaction_id
+    return r
+  })
+
+  // 15. 提现确认
+  const withdrawDoReq = () => ({
+    transaction_id: ctx.withdrawTid, user_id: buyerId, bank_type: 1, amount: 100,
+    desc: '冒烟测试提现', verify_type: 1, password,
+  })
+  await exec(14, withdrawDoReq, () => postApi('/api/pay_gate/c2bank_do', withdrawDoReq(), ctx.buyerToken, buyerId))
+
+  // 16. 支付下单
+  const outOrderNo = generateNumericString(32, 32)
+  const payPreReq = { user_id: buyerId, merchant_id: PAY_MERCHANT_ID }
+  await exec(15, payPreReq, async () => {
+    const r = await postApi('/api/pay_gate/pay_re', payPreReq, ctx.buyerToken, buyerId)
+    if (r.success) ctx.payTid = r.data.transaction_id
+    return r
+  })
+
+  // 17. 余额支付
+  const banPayReq = () => ({
+    transaction_id: ctx.payTid, out_order_no: outOrderNo, merchant_id: PAY_MERCHANT_ID,
+    user_id: buyerId, amount: 100, verify_type: 1, password,
+  })
+  await exec(16, banPayReq, () => postApi('/api/pay_gate/ban_pay', banPayReq(), ctx.buyerToken, buyerId))
+
+  // 18. 查询订单信息
+  const orderInfoReq = () => ({ transaction_id: ctx.payTid })
+  await exec(17, orderInfoReq, () => postApi('/api/pay_gate/get_order_info', orderInfoReq(), ctx.buyerToken, buyerId))
+
+  // 19. 关闭/补单
+  const closeReq = () => ({
+    transaction_id: ctx.payTid, out_order_no: outOrderNo, merchant_id: PAY_MERCHANT_ID,
+    user_id: buyerId, amount: 100,
+  })
+  await exec(18, closeReq, () => postApi('/api/pay_gate/close_or_supply_order', closeReq(), ctx.buyerToken, buyerId))
+
+  // 20. 查询用户流水
+  const flowReq = { user_id: buyerId, offset: 0, limit: 10 }
+  await exec(19, flowReq, () => postApi('/api/pay_gate/get_user_flow', flowReq, ctx.buyerToken, buyerId))
+
+  smokeRunning.value = false
+
+  const failed = steps.filter(s => s.status === 'fail').length
+  const skipped = steps.filter(s => s.status === 'skip').length
+  if (failed === 0 && skipped === 0) {
+    showToast('全部接口测试通过 ✓', 'success')
+  } else {
+    showToast(`测试完成：${failed} 个失败，${skipped} 个跳过`, failed > 0 ? 'error' : 'warning')
+  }
+}
+
 const runTest = async () => {
+  if (testMode.value === 'smoke_test') {
+    await runSmokeTest()
+    return
+  }
   if (testUsers.value.length === 0) {
     showToast('请先生成测试用户', 'error')
     return
@@ -651,12 +912,12 @@ onUnmounted(() => {
     <div class="max-w-6xl mx-auto">
       <header class="text-center mb-6 sm:mb-8 animate-fade-in">
         <h1 class="text-2xl sm:text-3xl font-bold text-white">压测中心</h1>
-        <p class="text-white/60 mt-2">C2C转账 / 余额查询 / 支付性能测试工具</p>
+        <p class="text-white/60 mt-2">C2C转账 / 余额查询 / 支付 / 全接口测试工具</p>
       </header>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="lg:col-span-2 space-y-6">
-          <div class="card p-6 animate-slide-up">
+        <div :class="testMode === 'smoke_test' ? 'lg:col-span-3 space-y-6' : 'lg:col-span-2 space-y-6'">
+          <div v-if="testMode !== 'smoke_test'" class="card p-6 animate-slide-up">
             <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <UserPlus class="w-5 h-5 text-primary-600" />
               测试用户
@@ -716,7 +977,13 @@ onUnmounted(() => {
                   <option value="one_to_many">一对多（一个C向多个C转账）</option>
                   <option value="query_balance">查询余额（并发查询余额接口）</option>
                   <option value="pay">支付（并发压测支付接口）</option>
+                  <option value="smoke_test">全接口测试（串联所有接口冒烟测试）</option>
                 </select>
+              </div>
+              <div v-if="testMode === 'smoke_test'" class="sm:col-span-2">
+                <p class="text-sm text-gray-500 bg-blue-50 rounded-lg p-3">
+                  全接口测试会自动创建买家/卖家用户，按依赖顺序串联执行所有接口（健康检查、注册、登录、充值、转账、提现、支付、查单等），并展示每个接口的执行结果。无需生成测试用户，点击「开始测试」即可。
+                </p>
               </div>
               <div v-if="testMode === 'many_to_one'">
                 <label class="label">目标用户ID（收款人）</label>
@@ -764,7 +1031,7 @@ onUnmounted(() => {
                   <option :value="1">异步入账 (version=1)</option>
                 </select>
               </div>
-              <div>
+              <div v-if="testMode !== 'smoke_test'">
                 <label class="label">压测时间（秒）</label>
                 <input
                   v-model.number="testDuration"
@@ -779,7 +1046,17 @@ onUnmounted(() => {
 
             <div class="mt-6 flex gap-4">
               <button
-                v-if="!isRunning"
+                v-if="testMode === 'smoke_test'"
+                @click="runTest"
+                :disabled="smokeRunning"
+                class="flex-1 btn-success py-3 text-lg flex items-center justify-center gap-2"
+              >
+                <RefreshCw v-if="smokeRunning" class="w-5 h-5 animate-spin" />
+                <Play v-else class="w-5 h-5" />
+                {{ smokeRunning ? '测试中...' : '开始测试' }}
+              </button>
+              <button
+                v-else-if="!isRunning"
                 @click="runTest"
                 class="flex-1 btn-success py-3 text-lg flex items-center justify-center gap-2"
               >
@@ -796,9 +1073,85 @@ onUnmounted(() => {
               </button>
             </div>
           </div>
+
+          <div v-if="testMode === 'smoke_test' && smokeSteps.length > 0" class="card p-6 animate-slide-up">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <BarChart3 class="w-5 h-5 text-primary-600" />
+              接口执行情况
+              <span class="text-sm font-normal text-gray-400 ml-auto">
+                {{ smokeSteps.filter(s => s.status === 'success').length }}/{{ smokeSteps.length }} 通过
+              </span>
+            </h2>
+
+            <div class="space-y-2">
+              <div
+                v-for="(step, idx) in smokeSteps"
+                :key="idx"
+                :class="[
+                  'rounded-lg border overflow-hidden',
+                  step.status === 'success' ? 'bg-green-50 border-green-100' :
+                  step.status === 'fail' ? 'bg-red-50 border-red-100' :
+                  step.status === 'running' ? 'bg-blue-50 border-blue-100' :
+                  step.status === 'skip' ? 'bg-gray-50 border-gray-100' :
+                  'bg-white border-gray-100'
+                ]"
+              >
+                <div
+                  class="flex items-center gap-3 py-2 px-3 cursor-pointer select-none hover:bg-black/5 transition-colors"
+                  @click="step.expanded = !step.expanded"
+                >
+                  <ChevronRight
+                    class="w-4 h-4 text-gray-400 shrink-0 transition-transform"
+                    :class="step.expanded ? 'rotate-90' : ''"
+                  />
+                  <span class="text-xs text-gray-400 font-mono w-6 text-right">{{ idx + 1 }}</span>
+                  <span
+                    :class="[
+                      'inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold shrink-0',
+                      step.status === 'success' ? 'bg-green-500 text-white' :
+                      step.status === 'fail' ? 'bg-red-500 text-white' :
+                      step.status === 'running' ? 'bg-blue-500 text-white' :
+                      step.status === 'skip' ? 'bg-gray-300 text-white' :
+                      'bg-gray-200 text-gray-400'
+                    ]"
+                  >
+                    <RefreshCw v-if="step.status === 'running'" class="w-3 h-3 animate-spin" />
+                    <template v-else-if="step.status === 'success'">✓</template>
+                    <template v-else-if="step.status === 'fail'">✕</template>
+                    <template v-else-if="step.status === 'skip'">−</template>
+                  </span>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm font-medium text-gray-800 truncate">{{ step.name }}</span>
+                      <span class="text-xs text-gray-400 font-mono truncate">{{ step.api }}</span>
+                    </div>
+                    <div
+                      v-if="step.message && step.status !== 'success'"
+                      class="text-xs mt-0.5"
+                      :class="step.status === 'fail' ? 'text-red-600' : 'text-gray-500'"
+                    >
+                      {{ step.message }}
+                    </div>
+                  </div>
+                  <span v-if="step.duration > 0" class="text-xs text-gray-400 font-mono shrink-0">{{ step.duration }}ms</span>
+                </div>
+
+                <div v-if="step.expanded" class="px-3 pb-3 pt-1 border-t border-black/5 space-y-2">
+                  <div>
+                    <p class="text-xs font-semibold text-gray-500 mb-1">请求参数</p>
+                    <pre class="text-xs bg-gray-800 text-green-300 rounded-md p-2 overflow-x-auto whitespace-pre-wrap break-all">{{ step.request ? JSON.stringify(step.request, null, 2) : '（无）' }}</pre>
+                  </div>
+                  <div>
+                    <p class="text-xs font-semibold text-gray-500 mb-1">返回参数</p>
+                    <pre class="text-xs bg-gray-800 text-blue-200 rounded-md p-2 overflow-x-auto whitespace-pre-wrap break-all">{{ step.response !== null ? JSON.stringify(step.response, null, 2) : '（未执行）' }}</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="space-y-6">
+        <div v-if="testMode !== 'smoke_test'" class="space-y-6">
           <div class="card p-6 animate-slide-up" style="animation-delay: 0.2s">
             <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Timer class="w-5 h-5 text-primary-600" />
