@@ -130,6 +130,13 @@ const generatingUsers = ref(false)
 const isRunning = ref(false)
 const stopRequested = ref(false)
 
+interface SmokeCheck {
+  label: string
+  pass: boolean
+  expected: any
+  actual: any
+}
+
 interface SmokeStep {
   name: string
   api: string
@@ -138,6 +145,7 @@ interface SmokeStep {
   message: string
   request: any
   response: any
+  checks: SmokeCheck[]
   expanded: boolean
 }
 
@@ -566,7 +574,7 @@ const runSmokeTest = async () => {
 
   // 定义全流程步骤（按依赖顺序串联所有接口）
   const mk = (name: string, api: string): SmokeStep => ({
-    name, api, status: 'pending', duration: 0, message: '', request: null, response: null, expanded: false,
+    name, api, status: 'pending', duration: 0, message: '', request: null, response: null, checks: [], expanded: false,
   })
   const steps: SmokeStep[] = [
     mk('健康检查', 'GET /health'),
@@ -599,11 +607,22 @@ const runSmokeTest = async () => {
   const ctx: Record<string, any> = {}
   let aborted = false
 
-  // 执行单个步骤：request 为请求参数(值或惰性函数，用于展示)，fn 返回 {success, data, error, duration}
+  // 生成一条相等校验
+  const eq = (label: string, expected: any, actual: any): SmokeCheck => ({
+    label, expected, actual, pass: String(expected) === String(actual),
+  })
+  // 生成一条非空校验
+  const notEmpty = (label: string, actual: any): SmokeCheck => ({
+    label, expected: '非空', actual, pass: actual !== undefined && actual !== null && actual !== '',
+  })
+
+  // 执行单个步骤：request 为请求参数(值或惰性函数，用于展示)，
+  // fn 返回 {success, data, error, duration}，validate 对返回 data 做业务校验
   const exec = async (
     index: number,
     request: any,
-    fn: () => Promise<{ success: boolean; data?: any; error?: any; duration: number }>
+    fn: () => Promise<{ success: boolean; data?: any; error?: any; duration: number }>,
+    validate?: (data: any, req: any) => SmokeCheck[]
   ) => {
     const step = steps[index]
     step.request = typeof request === 'function' ? request() : request
@@ -617,16 +636,26 @@ const runSmokeTest = async () => {
       const res = await fn()
       step.duration = res.duration
       step.response = res.success ? res.data : { error: res.error }
-      if (res.success) {
-        step.status = 'success'
-        step.message = '成功'
-        return true
-      } else {
+      if (!res.success) {
         step.status = 'fail'
         step.message = res.error || '失败'
         aborted = true
         return false
       }
+      // 请求成功，执行业务参数校验
+      if (validate) {
+        step.checks = validate(res.data, step.request) || []
+      }
+      const failedChecks = step.checks.filter(c => !c.pass)
+      if (failedChecks.length > 0) {
+        step.status = 'fail'
+        step.message = `业务校验失败：${failedChecks.map(c => c.label).join('、')}`
+        aborted = true
+        return false
+      }
+      step.status = 'success'
+      step.message = step.checks.length > 0 ? `成功（${step.checks.length}项校验通过）` : '成功'
+      return true
     } catch (e: any) {
       step.status = 'fail'
       step.message = e?.message || '异常'
@@ -636,6 +665,13 @@ const runSmokeTest = async () => {
     }
   }
 
+  // 预期余额跟踪（买家初始为0）
+  let expectedBalance = 0
+  const RECHARGE_AMOUNT = 1000000
+  const C2C_AMOUNT = 100
+  const WITHDRAW_AMOUNT = 100
+  const PAY_AMOUNT = 100
+
   // 1. 健康检查
   await exec(0, {}, () => getApi('/api/pay_gate/health'))
 
@@ -644,7 +680,8 @@ const runSmokeTest = async () => {
     user_id: buyerId, password, name: generateChineseName(), gender: 1, age: 25,
     phone: generatePhone(), email: generateEmail(), address: generateAddress(), id_type: 1, id_card: generateIdCard(),
   }
-  await exec(1, regBuyerReq, () => postApi('/api/pay_gate/reg_user', regBuyerReq, undefined, buyerId))
+  await exec(1, regBuyerReq, () => postApi('/api/pay_gate/reg_user', regBuyerReq, undefined, buyerId),
+    (d, req) => [eq('返回user_id与请求一致', req.user_id, d.user_id)])
 
   // 3. 买家Token
   const tokenBuyerReq = { user_id: buyerId, password, business_info: STRESS_BUSINESS_INFO }
@@ -652,14 +689,18 @@ const runSmokeTest = async () => {
     const r = await postApi('/api/pay_gate/get_user_token', tokenBuyerReq, undefined, buyerId)
     if (r.success) ctx.buyerToken = r.data.user_token
     return r
-  })
+  }, (d, req) => [
+    eq('返回user_id与请求一致', req.user_id, d.user_id),
+    notEmpty('user_token非空', d.user_token),
+  ])
 
   // 4. 注册卖家
   const regSellerReq = {
     user_id: sellerId, password, name: generateChineseName(), gender: 1, age: 26,
     phone: generatePhone(), email: generateEmail(), address: generateAddress(), id_type: 1, id_card: generateIdCard(),
   }
-  await exec(3, regSellerReq, () => postApi('/api/pay_gate/reg_user', regSellerReq, undefined, sellerId))
+  await exec(3, regSellerReq, () => postApi('/api/pay_gate/reg_user', regSellerReq, undefined, sellerId),
+    (d, req) => [eq('返回user_id与请求一致', req.user_id, d.user_id)])
 
   // 5. 卖家Token
   const tokenSellerReq = { user_id: sellerId, password, business_info: STRESS_BUSINESS_INFO }
@@ -667,18 +708,27 @@ const runSmokeTest = async () => {
     const r = await postApi('/api/pay_gate/get_user_token', tokenSellerReq, undefined, sellerId)
     if (r.success) ctx.sellerToken = r.data.user_token
     return r
-  })
+  }, (d, req) => [
+    eq('返回user_id与请求一致', req.user_id, d.user_id),
+    notEmpty('user_token非空', d.user_token),
+  ])
 
   // 6. 更新用户信息(买家)
   const updateReq = {
     user_id: buyerId, name: generateChineseName(), gender: 2, age: 30, address: generateAddress(),
     phone: generatePhone(), email: generateEmail(), id_type: 1, id_card: generateIdCard(),
   }
-  await exec(5, updateReq, () => postApi('/api/pay_gate/update_user_info', updateReq, ctx.buyerToken, buyerId))
+  await exec(5, updateReq, () => postApi('/api/pay_gate/update_user_info', updateReq, ctx.buyerToken, buyerId),
+    (d, req) => [eq('返回user_id与请求一致', req.user_id, d.user_id)])
 
-  // 7. 查询用户信息(买家)
+  // 7. 查询用户信息(买家)：校验返回信息与刚更新的一致
   const getUserInfoReq = { user_id: buyerId }
-  await exec(6, getUserInfoReq, () => postApi('/api/pay_gate/get_user_info', getUserInfoReq, ctx.buyerToken, buyerId))
+  await exec(6, getUserInfoReq, () => postApi('/api/pay_gate/get_user_info', getUserInfoReq, ctx.buyerToken, buyerId),
+    (d, req) => [
+      eq('返回user_id与请求一致', req.user_id, d.user_id),
+      eq('姓名与更新值一致', updateReq.name, d.name),
+      eq('手机号与更新值一致', updateReq.phone, d.phone),
+    ])
 
   // 8. 充值下单
   const rechargePreReq = { user_id: buyerId }
@@ -686,18 +736,30 @@ const runSmokeTest = async () => {
     const r = await postApi('/api/pay_gate/bank2c_pre', rechargePreReq, ctx.buyerToken, buyerId)
     if (r.success) ctx.rechargeTid = r.data.transaction_id
     return r
-  })
+  }, (d, req) => [
+    eq('返回user_id与请求一致', req.user_id, d.user_id),
+    notEmpty('transaction_id非空', d.transaction_id),
+  ])
 
   // 9. 充值确认
   const rechargeDoReq = () => ({
-    transaction_id: ctx.rechargeTid, user_id: buyerId, bank_type: 1, amount: 1000000,
+    transaction_id: ctx.rechargeTid, user_id: buyerId, bank_type: 1, amount: RECHARGE_AMOUNT,
     desc: '冒烟测试充值', verify_type: 1, password,
   })
-  await exec(8, rechargeDoReq, () => postApi('/api/pay_gate/bank2c_do', rechargeDoReq(), ctx.buyerToken, buyerId))
+  const rechargeOk = await exec(8, rechargeDoReq, () => postApi('/api/pay_gate/bank2c_do', rechargeDoReq(), ctx.buyerToken, buyerId),
+    (d, req) => [
+      eq('返回transaction_id与请求一致', req.transaction_id, d.transaction_id),
+      eq('返回user_id与请求一致', req.user_id, d.user_id),
+    ])
+  if (rechargeOk) expectedBalance += RECHARGE_AMOUNT
 
-  // 10. 查询余额
+  // 10. 查询余额：校验余额变化符合预期（=充值金额）
   const balanceReq = { user_id: buyerId }
-  await exec(9, balanceReq, () => postApi('/api/pay_gate/get_user_balance_info', balanceReq, ctx.buyerToken, buyerId))
+  await exec(9, balanceReq, () => postApi('/api/pay_gate/get_user_balance_info', balanceReq, ctx.buyerToken, buyerId),
+    (d, req) => [
+      eq('返回user_id与请求一致', req.user_id, d.user_id),
+      eq(`余额变化符合预期(充值后=${expectedBalance})`, expectedBalance, d.balance),
+    ])
 
   // 11. C2C转账下单
   const c2cPreReq = { buyer_user_id: buyerId }
@@ -705,18 +767,33 @@ const runSmokeTest = async () => {
     const r = await postApi('/api/pay_gate/c2c_transfer_pre', c2cPreReq, ctx.buyerToken, buyerId)
     if (r.success) ctx.c2cTid = r.data.transaction_id
     return r
-  })
+  }, (d, req) => [
+    eq('返回buyer_user_id与请求一致', req.buyer_user_id, d.buyer_user_id),
+    notEmpty('transaction_id非空', d.transaction_id),
+  ])
 
   // 12. C2C转账确认
   const c2cDoReq = () => ({
     transaction_id: ctx.c2cTid, buyer_user_id: buyerId, seller_user_id: sellerId,
-    amount: 100, verify_type: 1, password, version: 0,
+    amount: C2C_AMOUNT, verify_type: 1, password, version: 0,
   })
-  await exec(11, c2cDoReq, () => postApi('/api/pay_gate/c2c_transfer_do', c2cDoReq(), ctx.buyerToken, buyerId))
+  const c2cOk = await exec(11, c2cDoReq, () => postApi('/api/pay_gate/c2c_transfer_do', c2cDoReq(), ctx.buyerToken, buyerId),
+    (d, req) => [
+      eq('返回transaction_id与请求一致', req.transaction_id, d.transaction_id),
+      eq('返回buyer_user_id与请求一致', req.buyer_user_id, d.buyer_user_id),
+      eq('返回seller_user_id与请求一致', req.seller_user_id, d.seller_user_id),
+    ])
+  if (c2cOk) expectedBalance -= C2C_AMOUNT
 
-  // 13. 查询C2C账单
+  // 13. 查询C2C账单：校验单号、买卖双方、金额一致
   const c2cBillReq = () => ({ transaction_id: ctx.c2cTid })
-  await exec(12, c2cBillReq, () => postApi('/api/pay_gate/get_c2c_bill', c2cBillReq(), ctx.buyerToken, buyerId))
+  await exec(12, c2cBillReq, () => postApi('/api/pay_gate/get_c2c_bill', c2cBillReq(), ctx.buyerToken, buyerId),
+    (d, req) => [
+      eq('返回transaction_id与请求一致', req.transaction_id, d.transaction_id),
+      eq('buyer_user_id为买家', buyerId, d.buyer_user_id),
+      eq('seller_user_id为卖家', sellerId, d.seller_user_id),
+      eq('金额与转账一致', C2C_AMOUNT, d.amount),
+    ])
 
   // 14. 提现下单
   const withdrawPreReq = { user_id: buyerId }
@@ -724,14 +801,22 @@ const runSmokeTest = async () => {
     const r = await postApi('/api/pay_gate/c2bank_pre', withdrawPreReq, ctx.buyerToken, buyerId)
     if (r.success) ctx.withdrawTid = r.data.transaction_id
     return r
-  })
+  }, (d, req) => [
+    eq('返回user_id与请求一致', req.user_id, d.user_id),
+    notEmpty('transaction_id非空', d.transaction_id),
+  ])
 
   // 15. 提现确认
   const withdrawDoReq = () => ({
-    transaction_id: ctx.withdrawTid, user_id: buyerId, bank_type: 1, amount: 100,
+    transaction_id: ctx.withdrawTid, user_id: buyerId, bank_type: 1, amount: WITHDRAW_AMOUNT,
     desc: '冒烟测试提现', verify_type: 1, password,
   })
-  await exec(14, withdrawDoReq, () => postApi('/api/pay_gate/c2bank_do', withdrawDoReq(), ctx.buyerToken, buyerId))
+  const withdrawOk = await exec(14, withdrawDoReq, () => postApi('/api/pay_gate/c2bank_do', withdrawDoReq(), ctx.buyerToken, buyerId),
+    (d, req) => [
+      eq('返回transaction_id与请求一致', req.transaction_id, d.transaction_id),
+      eq('返回user_id与请求一致', req.user_id, d.user_id),
+    ])
+  if (withdrawOk) expectedBalance -= WITHDRAW_AMOUNT
 
   // 16. 支付下单
   const outOrderNo = generateNumericString(32, 32)
@@ -740,29 +825,54 @@ const runSmokeTest = async () => {
     const r = await postApi('/api/pay_gate/pay_re', payPreReq, ctx.buyerToken, buyerId)
     if (r.success) ctx.payTid = r.data.transaction_id
     return r
-  })
+  }, (d, req) => [
+    eq('返回user_id与请求一致', req.user_id, d.user_id),
+    notEmpty('transaction_id非空', d.transaction_id),
+  ])
 
-  // 17. 余额支付
+  // 17. 余额支付：校验单号/商户/用户/金额一致
   const banPayReq = () => ({
     transaction_id: ctx.payTid, out_order_no: outOrderNo, merchant_id: PAY_MERCHANT_ID,
-    user_id: buyerId, amount: 100, verify_type: 1, password,
+    user_id: buyerId, amount: PAY_AMOUNT, verify_type: 1, password,
   })
-  await exec(16, banPayReq, () => postApi('/api/pay_gate/ban_pay', banPayReq(), ctx.buyerToken, buyerId))
+  const payOk = await exec(16, banPayReq, () => postApi('/api/pay_gate/ban_pay', banPayReq(), ctx.buyerToken, buyerId),
+    (d, req) => [
+      eq('返回transaction_id与请求一致', req.transaction_id, d.transaction_id),
+      eq('返回out_order_no与请求一致', req.out_order_no, d.out_order_no),
+      eq('返回merchant_id与请求一致', req.merchant_id, d.merchant_id),
+      eq('返回user_id与请求一致', req.user_id, d.user_id),
+      eq('返回amount与请求一致', req.amount, d.amount),
+    ])
+  if (payOk) expectedBalance -= PAY_AMOUNT
 
-  // 18. 查询订单信息
+  // 18. 查询订单信息：校验单号/商户/用户/金额一致，交易状态为已支付(2)
   const orderInfoReq = () => ({ transaction_id: ctx.payTid })
-  await exec(17, orderInfoReq, () => postApi('/api/pay_gate/get_order_info', orderInfoReq(), ctx.buyerToken, buyerId))
+  await exec(17, orderInfoReq, () => postApi('/api/pay_gate/get_order_info', orderInfoReq(), ctx.buyerToken, buyerId),
+    (d, req) => [
+      eq('返回transaction_id与请求一致', req.transaction_id, d.transaction_id),
+      eq('out_order_no与支付单号一致', outOrderNo, d.out_order_no),
+      eq('merchant_id与支付商户一致', PAY_MERCHANT_ID, d.merchant_id),
+      eq('返回user_id为买家', buyerId, d.user_id),
+      eq('金额与支付一致', PAY_AMOUNT, d.amount),
+      eq('交易状态为支付成功(2)', 2, d.trade_state),
+    ])
 
-  // 19. 关闭/补单
+  // 19. 关闭/补单：校验单号一致
   const closeReq = () => ({
     transaction_id: ctx.payTid, out_order_no: outOrderNo, merchant_id: PAY_MERCHANT_ID,
-    user_id: buyerId, amount: 100,
+    user_id: buyerId, amount: PAY_AMOUNT,
   })
-  await exec(18, closeReq, () => postApi('/api/pay_gate/close_or_supply_order', closeReq(), ctx.buyerToken, buyerId))
+  await exec(18, closeReq, () => postApi('/api/pay_gate/close_or_supply_order', closeReq(), ctx.buyerToken, buyerId),
+    (d, req) => [
+      eq('返回transaction_id与请求一致', req.transaction_id, d.transaction_id),
+      eq('返回out_order_no与请求一致', req.out_order_no, d.out_order_no),
+      eq('返回user_id与请求一致', req.user_id, d.user_id),
+    ])
 
-  // 20. 查询用户流水
+  // 20. 查询用户流水：校验返回user_id一致
   const flowReq = { user_id: buyerId, offset: 0, limit: 10 }
-  await exec(19, flowReq, () => postApi('/api/pay_gate/get_user_flow', flowReq, ctx.buyerToken, buyerId))
+  await exec(19, flowReq, () => postApi('/api/pay_gate/get_user_flow', flowReq, ctx.buyerToken, buyerId),
+    (d, req) => [eq('返回user_id与请求一致', req.user_id, d.user_id)])
 
   smokeRunning.value = false
 
@@ -1133,10 +1243,48 @@ onUnmounted(() => {
                       {{ step.message }}
                     </div>
                   </div>
+                  <span
+                    v-if="step.checks.length > 0"
+                    :class="[
+                      'text-xs font-medium px-1.5 py-0.5 rounded shrink-0',
+                      step.checks.every(c => c.pass) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    ]"
+                  >
+                    校验 {{ step.checks.filter(c => c.pass).length }}/{{ step.checks.length }}
+                  </span>
                   <span v-if="step.duration > 0" class="text-xs text-gray-400 font-mono shrink-0">{{ step.duration }}ms</span>
                 </div>
 
                 <div v-if="step.expanded" class="px-3 pb-3 pt-1 border-t border-black/5 space-y-2">
+                  <div v-if="step.checks.length > 0">
+                    <p class="text-xs font-semibold text-gray-500 mb-1">业务参数校验</p>
+                    <div class="space-y-1">
+                      <div
+                        v-for="(chk, ci) in step.checks"
+                        :key="ci"
+                        :class="[
+                          'flex items-start gap-2 text-xs rounded-md px-2 py-1.5',
+                          chk.pass ? 'bg-green-50' : 'bg-red-50'
+                        ]"
+                      >
+                        <span
+                          :class="[
+                            'inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold shrink-0 mt-0.5',
+                            chk.pass ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+                          ]"
+                        >
+                          <template v-if="chk.pass">✓</template>
+                          <template v-else>✕</template>
+                        </span>
+                        <div class="flex-1 min-w-0">
+                          <div :class="chk.pass ? 'text-green-700' : 'text-red-700'">{{ chk.label }}</div>
+                          <div class="text-gray-500 font-mono break-all mt-0.5">
+                            期望: {{ JSON.stringify(chk.expected) }} | 实际: {{ JSON.stringify(chk.actual) }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   <div>
                     <p class="text-xs font-semibold text-gray-500 mb-1">请求参数</p>
                     <pre class="text-xs bg-gray-800 text-green-300 rounded-md p-2 overflow-x-auto whitespace-pre-wrap break-all">{{ step.request ? JSON.stringify(step.request, null, 2) : '（无）' }}</pre>
