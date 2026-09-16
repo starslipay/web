@@ -145,7 +145,7 @@ onUnmounted(() => {
     <div class="max-w-4xl mx-auto">
       <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4 animate-fade-in">
         <div>
-          <h1 class="text-2xl font-bold text-white">starsli交易平台</h1>
+          <h1 class="text-2xl font-bold text-white">starslipay交易平台</h1>
           <p class="text-blue-100 mt-1">欢迎回来，{{ authStore.userInfo?.name || authStore.userId }}</p>
         </div>
         

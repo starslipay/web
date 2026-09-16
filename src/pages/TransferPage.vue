@@ -13,7 +13,6 @@ const debugStore = useDebugStore()
 const activeTab = ref<'c2c' | 'bank2c' | 'c2bank'>('c2c')
 const loading = ref(false)
 const showPassword = ref(false)
-const concurrency = ref(1)
 let refreshInterval: ReturnType<typeof setInterval> | null = null
 const toast = reactive({
   show: false,
@@ -27,7 +26,7 @@ const c2cForm = reactive({
   amount: '',
   verify_type: 1,
   password: '',
-  version: 0,
+  version: 1,
 })
 
 const bank2cForm = reactive({
@@ -110,68 +109,28 @@ const c2cTransfer = async () => {
   }
 
   loading.value = true
-  const count = Math.max(1, parseInt(concurrency.value.toString()) || 1)
-  
+
   try {
-    if (count === 1) {
-      const preResponse = await payGateApi.c2cTransferPre({ buyer_user_id: c2cForm.buyer_user_id })
-      
-      const amountInCents = Math.round(parseFloat(c2cForm.amount) * 100)
-      
-      const doResponse = await payGateApi.c2cTransferDo({
-        transaction_id: preResponse.transaction_id,
-        buyer_user_id: c2cForm.buyer_user_id,
-        seller_user_id: c2cForm.seller_user_id,
-        amount: amountInCents,
-        verify_type: c2cForm.verify_type,
-        password: c2cForm.password,
-        version: c2cForm.version,
-      })
+    const preResponse = await payGateApi.c2cTransferPre({ buyer_user_id: c2cForm.buyer_user_id })
 
-      if (doResponse.is_repeat === 1) {
-        showToast('交易已重复提交', 'error')
-      } else {
-        showToast('转账成功', 'success')
-      }
+    const amountInCents = Math.round(parseFloat(c2cForm.amount) * 100)
+
+    const doResponse = await payGateApi.c2cTransferDo({
+      transaction_id: preResponse.transaction_id,
+      buyer_user_id: c2cForm.buyer_user_id,
+      seller_user_id: c2cForm.seller_user_id,
+      amount: amountInCents,
+      verify_type: c2cForm.verify_type,
+      password: c2cForm.password,
+      version: c2cForm.version,
+    })
+
+    if (doResponse.is_repeat === 1) {
+      showToast('交易已重复提交', 'error')
     } else {
-      const promises = Array.from({ length: count }, async (_, index) => {
-        try {
-          const preResponse = await payGateApi.c2cTransferPre({ buyer_user_id: c2cForm.buyer_user_id })
-          
-          const amountInCents = Math.round(parseFloat(c2cForm.amount) * 100)
-          
-          const doResponse = await payGateApi.c2cTransferDo({
-            transaction_id: preResponse.transaction_id,
-            buyer_user_id: c2cForm.buyer_user_id,
-            seller_user_id: c2cForm.seller_user_id,
-            amount: amountInCents,
-            verify_type: c2cForm.verify_type,
-            password: c2cForm.password,
-            version: c2cForm.version,
-          })
-
-          if (doResponse.is_repeat === 1) {
-            return { success: false, message: `第${index + 1}笔交易已重复提交` }
-          }
-          return { success: true, message: `第${index + 1}笔转账成功` }
-        } catch (error) {
-          const msg = (error as Error).message || `第${index + 1}笔转账失败`
-          return { success: false, message: msg }
-        }
-      })
-
-      const results = await Promise.all(promises)
-      const successCount = results.filter(r => r.success).length
-      
-      if (successCount === count) {
-        showToast(`全部${count}笔转账成功`, 'success')
-      } else if (successCount === 0) {
-        showToast(`全部${count}笔转账失败`, 'error')
-      } else {
-        showToast(`${successCount}/${count}笔转账成功`, 'warning')
-      }
+      showToast('转账成功', 'success')
     }
-    
+
     await authStore.getUserBalance()
     resetC2C()
   } catch (error) {
@@ -189,68 +148,28 @@ const bank2cTransfer = async () => {
   }
 
   loading.value = true
-  const count = Math.max(1, parseInt(concurrency.value.toString()) || 1)
-  
+
   try {
-    if (count === 1) {
-      const preResponse = await payGateApi.bank2cPre({ user_id: bank2cForm.user_id })
-      
-      const amountInCents = Math.round(parseFloat(bank2cForm.amount) * 100)
-      
-      const doResponse = await payGateApi.bank2cDo({
-        transaction_id: preResponse.transaction_id,
-        user_id: bank2cForm.user_id,
-        bank_type: bank2cForm.bank_type,
-        amount: amountInCents,
-        desc: bank2cForm.desc,
-        verify_type: bank2cForm.verify_type,
-        password: bank2cForm.password,
-      })
+    const preResponse = await payGateApi.bank2cPre({ user_id: bank2cForm.user_id })
 
-      if (doResponse.is_repeat === 1) {
-        showToast('交易已重复提交', 'error')
-      } else {
-        showToast('充值成功', 'success')
-      }
+    const amountInCents = Math.round(parseFloat(bank2cForm.amount) * 100)
+
+    const doResponse = await payGateApi.bank2cDo({
+      transaction_id: preResponse.transaction_id,
+      user_id: bank2cForm.user_id,
+      bank_type: bank2cForm.bank_type,
+      amount: amountInCents,
+      desc: bank2cForm.desc,
+      verify_type: bank2cForm.verify_type,
+      password: bank2cForm.password,
+    })
+
+    if (doResponse.is_repeat === 1) {
+      showToast('交易已重复提交', 'error')
     } else {
-      const promises = Array.from({ length: count }, async (_, index) => {
-        try {
-          const preResponse = await payGateApi.bank2cPre({ user_id: bank2cForm.user_id })
-          
-          const amountInCents = Math.round(parseFloat(bank2cForm.amount) * 100)
-          
-          const doResponse = await payGateApi.bank2cDo({
-            transaction_id: preResponse.transaction_id,
-            user_id: bank2cForm.user_id,
-            bank_type: bank2cForm.bank_type,
-            amount: amountInCents,
-            desc: bank2cForm.desc,
-            verify_type: bank2cForm.verify_type,
-            password: bank2cForm.password,
-          })
-
-          if (doResponse.is_repeat === 1) {
-            return { success: false, message: `第${index + 1}笔交易已重复提交` }
-          }
-          return { success: true, message: `第${index + 1}笔充值成功` }
-        } catch (error) {
-          const msg = (error as Error).message || `第${index + 1}笔充值失败`
-          return { success: false, message: msg }
-        }
-      })
-
-      const results = await Promise.all(promises)
-      const successCount = results.filter(r => r.success).length
-      
-      if (successCount === count) {
-        showToast(`全部${count}笔充值成功`, 'success')
-      } else if (successCount === 0) {
-        showToast(`全部${count}笔充值失败`, 'error')
-      } else {
-        showToast(`${successCount}/${count}笔充值成功`, 'warning')
-      }
+      showToast('充值成功', 'success')
     }
-    
+
     await authStore.getUserBalance()
     resetBank2C()
   } catch (error) {
@@ -268,68 +187,28 @@ const c2bankWithdraw = async () => {
   }
 
   loading.value = true
-  const count = Math.max(1, parseInt(concurrency.value.toString()) || 1)
-  
+
   try {
-    if (count === 1) {
-      const preResponse = await payGateApi.c2bankPre({ user_id: c2bankForm.user_id })
+    const preResponse = await payGateApi.c2bankPre({ user_id: c2bankForm.user_id })
 
-      const amountInCents = Math.round(parseFloat(c2bankForm.amount) * 100)
+    const amountInCents = Math.round(parseFloat(c2bankForm.amount) * 100)
 
-      const doResponse = await payGateApi.c2bankDo({
-        transaction_id: preResponse.transaction_id,
-        user_id: c2bankForm.user_id,
-        bank_type: c2bankForm.bank_type,
-        amount: amountInCents,
-        desc: c2bankForm.desc,
-        verify_type: c2bankForm.verify_type,
-        password: c2bankForm.password,
-      })
+    const doResponse = await payGateApi.c2bankDo({
+      transaction_id: preResponse.transaction_id,
+      user_id: c2bankForm.user_id,
+      bank_type: c2bankForm.bank_type,
+      amount: amountInCents,
+      desc: c2bankForm.desc,
+      verify_type: c2bankForm.verify_type,
+      password: c2bankForm.password,
+    })
 
-      if (doResponse.is_repeat === 1) {
-        showToast('交易已重复提交', 'error')
-      } else {
-        showToast('提现成功', 'success')
-      }
+    if (doResponse.is_repeat === 1) {
+      showToast('交易已重复提交', 'error')
     } else {
-      const promises = Array.from({ length: count }, async (_, index) => {
-        try {
-          const preResponse = await payGateApi.c2bankPre({ user_id: c2bankForm.user_id })
-
-          const amountInCents = Math.round(parseFloat(c2bankForm.amount) * 100)
-
-          const doResponse = await payGateApi.c2bankDo({
-            transaction_id: preResponse.transaction_id,
-            user_id: c2bankForm.user_id,
-            bank_type: c2bankForm.bank_type,
-            amount: amountInCents,
-            desc: c2bankForm.desc,
-            verify_type: c2bankForm.verify_type,
-            password: c2bankForm.password,
-          })
-
-          if (doResponse.is_repeat === 1) {
-            return { success: false, message: `第${index + 1}笔交易已重复提交` }
-          }
-          return { success: true, message: `第${index + 1}笔提现成功` }
-        } catch (error) {
-          const msg = (error as Error).message || `第${index + 1}笔提现失败`
-          return { success: false, message: msg }
-        }
-      })
-
-      const results = await Promise.all(promises)
-      const successCount = results.filter(r => r.success).length
-      
-      if (successCount === count) {
-        showToast(`全部${count}笔提现成功`, 'success')
-      } else if (successCount === 0) {
-        showToast(`全部${count}笔提现失败`, 'error')
-      } else {
-        showToast(`${successCount}/${count}笔提现成功`, 'warning')
-      }
+      showToast('提现成功', 'success')
     }
-    
+
     await authStore.getUserBalance()
     resetC2Bank()
   } catch (error) {
@@ -459,25 +338,6 @@ onUnmounted(() => {
           </div>
 
           <div>
-            <label class="label">入账方式</label>
-            <select v-model="c2cForm.version" class="input-field">
-              <option :value="0">同步入账</option>
-              <option :value="1">异步入账</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="label">并发数</label>
-            <input
-              v-model.number="concurrency"
-              type="number"
-              min="1"
-              class="input-field"
-              placeholder="请输入并发数"
-            />
-          </div>
-
-          <div>
             <label class="label">交易密码</label>
             <div class="relative">
               <Lock class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -550,17 +410,6 @@ onUnmounted(() => {
           </div>
 
           <div>
-            <label class="label">并发数</label>
-            <input
-              v-model.number="concurrency"
-              type="number"
-              min="1"
-              class="input-field"
-              placeholder="请输入并发数"
-            />
-          </div>
-
-          <div>
             <label class="label">交易密码</label>
             <div class="relative">
               <Lock class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -630,17 +479,6 @@ onUnmounted(() => {
               rows="3"
               placeholder="请输入备注信息"
             ></textarea>
-          </div>
-
-          <div>
-            <label class="label">并发数</label>
-            <input
-              v-model.number="concurrency"
-              type="number"
-              min="1"
-              class="input-field"
-              placeholder="请输入并发数"
-            />
           </div>
 
           <div>
