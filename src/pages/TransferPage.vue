@@ -27,13 +27,14 @@ const c2cForm = reactive({
   verify_type: 1,
   password: '',
   version: 1,
+  memo: '',
 })
 
 const bank2cForm = reactive({
   user_id: authStore.userId || '',
   bank_type: 1,
   amount: '',
-  desc: '',
+  memo: '',
   verify_type: 1,
   password: '',
 })
@@ -42,7 +43,7 @@ const c2bankForm = reactive({
   user_id: authStore.userId || '',
   bank_type: 1,
   amount: '',
-  desc: '',
+  memo: '',
   verify_type: 1,
   password: '',
 })
@@ -75,19 +76,20 @@ const resetC2C = () => {
   c2cForm.seller_user_id = ''
   c2cForm.amount = ''
   c2cForm.password = ''
+  c2cForm.memo = ''
 }
 
 const resetBank2C = () => {
   bank2cForm.bank_type = 1
   bank2cForm.amount = ''
-  bank2cForm.desc = ''
+  bank2cForm.memo = ''
   bank2cForm.password = ''
 }
 
 const resetC2Bank = () => {
   c2bankForm.bank_type = 1
   c2bankForm.amount = ''
-  c2bankForm.desc = ''
+  c2bankForm.memo = ''
   c2bankForm.password = ''
 }
 
@@ -123,6 +125,7 @@ const c2cTransfer = async () => {
       verify_type: c2cForm.verify_type,
       password: c2cForm.password,
       version: c2cForm.version,
+      memo: c2cForm.memo || '默认',
     })
 
     if (doResponse.is_repeat === 1) {
@@ -142,7 +145,7 @@ const c2cTransfer = async () => {
 }
 
 const bank2cTransfer = async () => {
-  if (!bank2cForm.amount || !bank2cForm.desc || !bank2cForm.password) {
+  if (!bank2cForm.amount || !bank2cForm.password) {
     showToast('请填写完整的充值信息', 'error')
     return
   }
@@ -159,7 +162,7 @@ const bank2cTransfer = async () => {
       user_id: bank2cForm.user_id,
       bank_type: bank2cForm.bank_type,
       amount: amountInCents,
-      desc: bank2cForm.desc,
+      memo: bank2cForm.memo || '默认',
       verify_type: bank2cForm.verify_type,
       password: bank2cForm.password,
     })
@@ -181,7 +184,7 @@ const bank2cTransfer = async () => {
 }
 
 const c2bankWithdraw = async () => {
-  if (!c2bankForm.amount || !c2bankForm.desc || !c2bankForm.password) {
+  if (!c2bankForm.amount || !c2bankForm.password) {
     showToast('请填写完整的提现信息', 'error')
     return
   }
@@ -198,7 +201,7 @@ const c2bankWithdraw = async () => {
       user_id: c2bankForm.user_id,
       bank_type: c2bankForm.bank_type,
       amount: amountInCents,
-      desc: c2bankForm.desc,
+      memo: c2bankForm.memo || '默认',
       verify_type: c2bankForm.verify_type,
       password: c2bankForm.password,
     })
@@ -338,6 +341,16 @@ onUnmounted(() => {
           </div>
 
           <div>
+            <label class="label">备注（选填）</label>
+            <input
+              v-model="c2cForm.memo"
+              type="text"
+              class="input-field"
+              placeholder="不填则默认为'默认'"
+            />
+          </div>
+
+          <div>
             <label class="label">交易密码</label>
             <div class="relative">
               <Lock class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -400,12 +413,12 @@ onUnmounted(() => {
           </div>
 
           <div>
-            <label class="label">备注</label>
+            <label class="label">备注（选填）</label>
             <textarea
-              v-model="bank2cForm.desc"
+              v-model="bank2cForm.memo"
               class="input-field resize-none"
               rows="3"
-              placeholder="请输入备注信息"
+              placeholder="不填则默认为'默认'"
             ></textarea>
           </div>
 
@@ -472,12 +485,12 @@ onUnmounted(() => {
           </div>
 
           <div>
-            <label class="label">备注</label>
+            <label class="label">备注（选填）</label>
             <textarea
-              v-model="c2bankForm.desc"
+              v-model="c2bankForm.memo"
               class="input-field resize-none"
               rows="3"
-              placeholder="请输入备注信息"
+              placeholder="不填则默认为'默认'"
             ></textarea>
           </div>
 

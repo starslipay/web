@@ -424,7 +424,7 @@ const createUser = async (userId: string, password: string): Promise<TestUser | 
         user_id: userId,
         bank_type: 1,
         amount: 1000000,
-        desc: '压测资金',
+        memo: '压测资金',
         verify_type: 1,
         password: '123456',
       },
@@ -744,7 +744,7 @@ const runSmokeTest = async () => {
   // 9. 充值确认
   const rechargeDoReq = () => ({
     transaction_id: ctx.rechargeTid, user_id: buyerId, bank_type: 1, amount: RECHARGE_AMOUNT,
-    desc: '冒烟测试充值', verify_type: 1, password,
+    memo: '冒烟测试充值', verify_type: 1, password,
   })
   const rechargeOk = await exec(8, rechargeDoReq, () => postApi('/api/pay_gate/bank2c_do', rechargeDoReq(), ctx.buyerToken, buyerId),
     (d, req) => [
@@ -809,7 +809,7 @@ const runSmokeTest = async () => {
   // 15. 提现确认
   const withdrawDoReq = () => ({
     transaction_id: ctx.withdrawTid, user_id: buyerId, bank_type: 1, amount: WITHDRAW_AMOUNT,
-    desc: '冒烟测试提现', verify_type: 1, password,
+    memo: '冒烟测试提现', verify_type: 1, password,
   })
   const withdrawOk = await exec(14, withdrawDoReq, () => postApi('/api/pay_gate/c2bank_do', withdrawDoReq(), ctx.buyerToken, buyerId),
     (d, req) => [

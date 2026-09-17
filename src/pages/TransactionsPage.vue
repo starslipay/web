@@ -255,7 +255,10 @@ onUnmounted(() => {
                     {{ getInoutTypeText(transaction.inout_type) }}
                   </span>
                 </div>
-                <p class="text-sm text-gray-500 mt-1">{{ transaction.desc || '无备注' }}</p>
+                <p class="text-sm text-gray-500 mt-1">
+                  <span>描述: {{ transaction.desc || '无' }}</span>
+                  <span class="ml-2">备注: {{ transaction.memo || '无' }}</span>
+                </p>
                 <div class="flex items-center gap-4 mt-2 text-xs text-gray-400">
                   <div class="flex items-center gap-1">
                     <Clock class="w-3 h-3" />

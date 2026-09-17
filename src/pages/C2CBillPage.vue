@@ -223,12 +223,20 @@ onUnmounted(() => {
             <span class="text-xl font-bold text-blue-600">¥{{ formatAmount(billInfo.amount) }}</span>
           </div>
 
-          <div v-if="billInfo.desc" class="p-4 bg-gray-50 rounded-lg">
+          <div class="p-4 bg-gray-50 rounded-lg">
+            <div class="flex items-center gap-2 mb-2">
+              <FileText class="w-4 h-4 text-gray-400" />
+              <span class="text-sm text-gray-500">交易描述</span>
+            </div>
+            <p class="text-gray-800">{{ billInfo.desc || '无' }}</p>
+          </div>
+
+          <div class="p-4 bg-gray-50 rounded-lg">
             <div class="flex items-center gap-2 mb-2">
               <FileText class="w-4 h-4 text-gray-400" />
               <span class="text-sm text-gray-500">备注</span>
             </div>
-            <p class="text-gray-800">{{ billInfo.desc }}</p>
+            <p class="text-gray-800">{{ billInfo.memo || '无' }}</p>
           </div>
         </div>
       </div>

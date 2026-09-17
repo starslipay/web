@@ -86,6 +86,7 @@ export interface UserFlow {
   amount: number
   balance: number
   desc: string
+  memo: string
   create_time: string
 }
 
@@ -113,6 +114,7 @@ export interface C2CTransferDoReq {
   verify_type: number
   password: string
   version: number
+  memo?: string
 }
 
 export interface C2CTransferDoRsp {
@@ -136,7 +138,7 @@ export interface Bank2CDoReq {
   user_id: string
   bank_type: number
   amount: number
-  desc: string
+  memo: string
   verify_type: number
   password: string
 }
@@ -161,7 +163,7 @@ export interface C2BankDoReq {
   user_id: string
   bank_type: number
   amount: number
-  desc: string
+  memo: string
   verify_type: number
   password: string
 }
@@ -183,6 +185,7 @@ export interface GetC2CBillRsp {
   pay_time: string
   amount: number
   desc: string
+  memo: string
 }
 
 // ============ 商城支付相关接口 ============
