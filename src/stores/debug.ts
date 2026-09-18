@@ -10,6 +10,7 @@ export interface RequestLog {
   responseData: any
   statusCode: number | null
   duration: number
+  traceparent: string
   error?: string
 }
 

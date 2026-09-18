@@ -59,10 +59,38 @@ const apiBase = axios.create({
 
 const STRESS_BUSINESS_INFO = 'web_stress_test'
 
+const generateRandomHex = (length: number): string => {
+  const chars = '0123456789abcdef'
+  let result = ''
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const bytes = new Uint8Array(Math.ceil(length / 2))
+    crypto.getRandomValues(bytes)
+    for (let i = 0; i < bytes.length && result.length < length; i++) {
+      result += bytes[i].toString(16).padStart(2, '0')
+    }
+    result = result.slice(0, length)
+  } else {
+    for (let i = 0; i < length; i++) {
+      result += chars[Math.floor(Math.random() * chars.length)]
+    }
+  }
+  return result
+}
+
+// W3C Trace Context: {version}-{trace-id}-{parent-id}-{trace-flags}
+const generateTraceparent = (): string => {
+  const version = '00'
+  const traceId = generateRandomHex(32)
+  const parentId = generateRandomHex(16)
+  const traceFlags = '01'
+  return `${version}-${traceId}-${parentId}-${traceFlags}`
+}
+
 const postApi = async (url: string, data: any, token?: string, userId?: string) => {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'BusinessInfo': STRESS_BUSINESS_INFO,
+    'traceparent': generateTraceparent(),
   }
   if (token) {
     headers['UserToken'] = token

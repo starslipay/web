@@ -32,7 +32,8 @@ const formatDuration = (ms: number) => {
 
 const copyJson = async (obj: any, id: number) => {
   try {
-    await navigator.clipboard.writeText(JSON.stringify(obj, null, 2))
+    const text = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2)
+    await navigator.clipboard.writeText(text)
     copiedId.value = id
     setTimeout(() => {
       copiedId.value = null
@@ -58,6 +59,12 @@ const getStatusClass = (statusCode: number | null) => {
   if (statusCode >= 400 && statusCode < 500) return 'text-yellow-600'
   if (statusCode >= 500) return 'text-red-600'
   return 'text-gray-500'
+}
+
+// 从 W3C traceparent 中提取 trace-id 部分
+const getTraceId = (traceparent: string): string => {
+  const parts = traceparent.split('-')
+  return parts.length >= 2 ? parts[1] : traceparent
 }
 </script>
 
@@ -114,6 +121,9 @@ const getStatusClass = (statusCode: number | null) => {
             {{ log.method }}
           </span>
           <span class="flex-1 text-sm text-gray-300 truncate">{{ log.url }}</span>
+          <span class="text-xs text-cyan-400 font-mono flex-shrink-0" :title="log.traceparent">
+            {{ getTraceId(log.traceparent).slice(0, 8) }}
+          </span>
           <span :class="['text-sm font-medium', getStatusClass(log.statusCode)]">
             {{ log.statusCode || '-' }}
           </span>
@@ -143,6 +153,20 @@ const getStatusClass = (statusCode: number | null) => {
               <span class="text-xs font-medium text-blue-400">请求时间</span>
               <span class="text-xs text-gray-400">{{ formatDateTime(log.timestamp) }}</span>
             </div>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-medium text-cyan-400">Traceparent</span>
+              <button
+                @click.stop="copyJson(log.traceparent, log.id)"
+                class="flex items-center gap-1 text-xs text-gray-400 hover:text-white"
+              >
+                <component :is="copiedId === log.id ? Check : Copy" class="w-3 h-3" />
+                {{ copiedId === log.id ? '已复制' : '复制' }}
+              </button>
+            </div>
+            <span class="text-xs font-mono text-cyan-300 break-all">{{ log.traceparent }}</span>
           </div>
 
           <div>
