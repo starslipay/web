@@ -1,12 +1,40 @@
 <script setup lang="ts">
 import { useDebugStore } from '@/stores/debug'
-import { X, Trash2, Copy, Check, ChevronDown, ChevronRight, Clock, Zap, AlertCircle } from 'lucide-vue-next'
+import { X, Trash2, Copy, Check, ChevronDown, ChevronRight, Clock, Zap, AlertCircle, ExternalLink } from 'lucide-vue-next'
 import { ref } from 'vue'
 
 const debugStore = useDebugStore()
 
 const expandedLogs = ref<Set<number>>(new Set())
 const copiedId = ref<number | null>(null)
+
+// Grafana Loki 日志查询配置
+const GRAFANA_BASE = 'http://43.136.84.124:31000/explore'
+const LOKI_DATASOURCE_UID = 'afwwzpsybzsw0a'
+const CONTAINER_PATTERN = 'pay_gate|trade_itg|user_mgr|account_mgr|order_mgr|trade_ig_mgr'
+
+// 根据 trace-id 生成 Grafana Loki 日志查询链接
+const buildLogQueryUrl = (traceparent: string): string => {
+  const traceId = getTraceId(traceparent)
+  // 原始查询表达式（不做 URL 编码，由 JSON.stringify 处理引号转义）
+  const rawExpr = `{container=~"${CONTAINER_PATTERN}"} |= "${traceId}"`
+  const panes = {
+    hzj: {
+      datasource: LOKI_DATASOURCE_UID,
+      queries: [{
+        refId: 'A',
+        expr: rawExpr,
+        queryType: 'range',
+        datasource: { type: 'loki', uid: LOKI_DATASOURCE_UID },
+        editorMode: 'code',
+      }],
+      range: { from: 'now-30m', to: 'now' },
+    },
+  }
+  // 整体 URL 编码一次（与 Grafana Explore 链接格式一致）
+  const encodedPanes = encodeURIComponent(JSON.stringify(panes))
+  return `${GRAFANA_BASE}?schemaVersion=1&panes=${encodedPanes}&orgId=1`
+}
 
 const toggleExpand = (id: number) => {
   if (expandedLogs.value.has(id)) {
@@ -121,9 +149,16 @@ const getTraceId = (traceparent: string): string => {
             {{ log.method }}
           </span>
           <span class="flex-1 text-sm text-gray-300 truncate">{{ log.url }}</span>
-          <span class="text-xs text-cyan-400 font-mono flex-shrink-0" :title="log.traceparent">
+          <a
+            :href="buildLogQueryUrl(log.traceparent)"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-xs text-cyan-400 font-mono flex-shrink-0 hover:text-cyan-300"
+            :title="`trace-id: ${getTraceId(log.traceparent)}\n点击查看 Grafana 日志`"
+            @click.stop
+          >
             {{ getTraceId(log.traceparent).slice(0, 8) }}
-          </span>
+          </a>
           <span :class="['text-sm font-medium', getStatusClass(log.statusCode)]">
             {{ log.statusCode || '-' }}
           </span>
@@ -158,13 +193,25 @@ const getTraceId = (traceparent: string): string => {
           <div>
             <div class="flex items-center justify-between mb-2">
               <span class="text-xs font-medium text-cyan-400">Traceparent</span>
-              <button
-                @click.stop="copyJson(log.traceparent, log.id)"
-                class="flex items-center gap-1 text-xs text-gray-400 hover:text-white"
-              >
-                <component :is="copiedId === log.id ? Check : Copy" class="w-3 h-3" />
-                {{ copiedId === log.id ? '已复制' : '复制' }}
-              </button>
+              <div class="flex items-center gap-3">
+                <a
+                  :href="buildLogQueryUrl(log.traceparent)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300"
+                  title="在 Grafana 中查看该请求的链路日志"
+                >
+                  <ExternalLink class="w-3 h-3" />
+                  查看日志
+                </a>
+                <button
+                  @click.stop="copyJson(log.traceparent, log.id)"
+                  class="flex items-center gap-1 text-xs text-gray-400 hover:text-white"
+                >
+                  <component :is="copiedId === log.id ? Check : Copy" class="w-3 h-3" />
+                  {{ copiedId === log.id ? '已复制' : '复制' }}
+                </button>
+              </div>
             </div>
             <span class="text-xs font-mono text-cyan-300 break-all">{{ log.traceparent }}</span>
           </div>
