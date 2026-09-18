@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useDebugStore } from '@/stores/debug'
-import { X, Trash2, Copy, Check, ChevronDown, ChevronRight, Clock, Zap, AlertCircle, ExternalLink } from 'lucide-vue-next'
+import { X, Trash2, Copy, Check, ChevronDown, ChevronRight, Clock, Zap, AlertCircle, ExternalLink, Network } from 'lucide-vue-next'
 import { ref } from 'vue'
 
 const debugStore = useDebugStore()
@@ -32,6 +32,44 @@ const buildLogQueryUrl = (traceparent: string): string => {
     },
   }
   // 整体 URL 编码一次（与 Grafana Explore 链接格式一致）
+  const encodedPanes = encodeURIComponent(JSON.stringify(panes))
+  return `${GRAFANA_BASE}?schemaVersion=1&panes=${encodedPanes}&orgId=1`
+}
+
+// Grafana Tempo 链路追踪配置
+const TEMPO_DATASOURCE_UID = 'tempo'
+const PAY_GATE_SERVICE = 'pay_gate'
+
+// 根据 trace-id 生成 Grafana Tempo 链路查询链接
+const buildTempoTraceUrl = (traceparent: string): string => {
+  const traceId = getTraceId(traceparent)
+  const traceqlQuery = `{ .service.name = "${PAY_GATE_SERVICE}" && trace:id = "${traceId}" }`
+  const panes = {
+    hzj: {
+      datasource: TEMPO_DATASOURCE_UID,
+      queries: [{
+        refId: 'A',
+        datasource: { type: 'tempo', uid: TEMPO_DATASOURCE_UID },
+        queryType: 'traceql',
+        limit: 20,
+        tableType: 'traces',
+        query: traceqlQuery,
+        filters: [{ id: 'd84686bf', operator: '=', scope: 'span' }],
+      }],
+      range: { from: 'now-1h', to: 'now' },
+    },
+    b9r: {
+      datasource: TEMPO_DATASOURCE_UID,
+      queries: [{
+        query: traceId,
+        queryType: 'traceql',
+        refId: 'A',
+        limit: 20,
+        tableType: 'traces',
+      }],
+      range: { from: 'now-1h', to: 'now' },
+    },
+  }
   const encodedPanes = encodeURIComponent(JSON.stringify(panes))
   return `${GRAFANA_BASE}?schemaVersion=1&panes=${encodedPanes}&orgId=1`
 }
@@ -159,6 +197,16 @@ const getTraceId = (traceparent: string): string => {
           >
             {{ getTraceId(log.traceparent).slice(0, 8) }}
           </a>
+          <a
+            :href="buildTempoTraceUrl(log.traceparent)"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-orange-400 flex-shrink-0 hover:text-orange-300"
+            :title="`trace-id: ${getTraceId(log.traceparent)}\n点击查看 Grafana Tempo 链路`"
+            @click.stop
+          >
+            <Network class="w-3.5 h-3.5" />
+          </a>
           <span :class="['text-sm font-medium', getStatusClass(log.statusCode)]">
             {{ log.statusCode || '-' }}
           </span>
@@ -199,10 +247,20 @@ const getTraceId = (traceparent: string): string => {
                   target="_blank"
                   rel="noopener noreferrer"
                   class="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300"
-                  title="在 Grafana 中查看该请求的链路日志"
+                  title="在 Grafana Loki 中查看该请求的链路日志"
                 >
                   <ExternalLink class="w-3 h-3" />
                   查看日志
+                </a>
+                <a
+                  :href="buildTempoTraceUrl(log.traceparent)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex items-center gap-1 text-xs text-orange-400 hover:text-orange-300"
+                  title="在 Grafana Tempo 中查看该请求的分布式链路追踪"
+                >
+                  <Network class="w-3 h-3" />
+                  查看Trace
                 </a>
                 <button
                   @click.stop="copyJson(log.traceparent, log.id)"
