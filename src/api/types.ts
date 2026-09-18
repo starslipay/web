@@ -208,6 +208,7 @@ export interface BanPayReq {
   amount?: number
   verify_type?: number
   password?: string
+  memo?: string
 }
 
 export interface BanPayRsp {

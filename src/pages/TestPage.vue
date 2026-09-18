@@ -833,7 +833,7 @@ const runSmokeTest = async () => {
   // 17. 余额支付：校验单号/商户/用户/金额一致
   const banPayReq = () => ({
     transaction_id: ctx.payTid, out_order_no: outOrderNo, merchant_id: PAY_MERCHANT_ID,
-    user_id: buyerId, amount: PAY_AMOUNT, verify_type: 1, password,
+    user_id: buyerId, amount: PAY_AMOUNT, verify_type: 1, password, memo: '压测支付',
   })
   const payOk = await exec(16, banPayReq, () => postApi('/api/pay_gate/ban_pay', banPayReq(), ctx.buyerToken, buyerId),
     (d, req) => [

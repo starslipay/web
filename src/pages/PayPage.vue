@@ -131,6 +131,7 @@ const doPay = async () => {
       amount: productInfo.value.price,
       verify_type: 1,
       password: password.value,
+      memo: productInfo.value.name,
     })
 
     // 3. 支付成功，保存订单到本地
