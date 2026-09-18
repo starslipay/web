@@ -26,6 +26,24 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/c2c-transfer',
+    name: 'c2c-transfer',
+    component: () => import('@/pages/C2CTransferPage.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/bank2c',
+    name: 'bank2c',
+    component: () => import('@/pages/Bank2CPage.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/c2bank',
+    name: 'c2bank',
+    component: () => import('@/pages/C2BankPage.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/profile',
     name: 'profile',
     component: () => import('@/pages/ProfilePage.vue'),

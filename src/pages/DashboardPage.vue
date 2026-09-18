@@ -90,7 +90,15 @@ const handleRemoveAccount = (userId: string) => {
 }
 
 const goToTransfer = () => {
-  router.push('/transfer')
+  router.push('/c2c-transfer')
+}
+
+const goToBank2C = () => {
+  router.push('/bank2c')
+}
+
+const goToC2Bank = () => {
+  router.push('/c2bank')
 }
 
 const goToProfile = () => {
@@ -322,7 +330,7 @@ onUnmounted(() => {
           </button>
 
           <button
-            @click="goToTransfer"
+            @click="goToBank2C"
             class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
             style="animation-delay: 0.2s"
           >
@@ -334,7 +342,7 @@ onUnmounted(() => {
           </button>
 
           <button
-            @click="goToTransfer"
+            @click="goToC2Bank"
             class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
             style="animation-delay: 0.3s"
           >
