@@ -3,7 +3,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDebugStore } from '@/stores/debug'
-import { Server, User, Lock, Eye, EyeOff, UserPlus, Zap } from 'lucide-vue-next'
+import { Server, User, Lock, Eye, EyeOff, UserPlus, Zap, ChevronDown } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -21,6 +21,14 @@ const loginForm = reactive({
   user_id: '',
   password: '',
 })
+
+// 已登录账户下拉选择
+const selectedAccount = ref('')
+
+// 选择已保存的账户时，自动填充 user_id
+const onSelectAccount = (userId: string) => {
+  loginForm.user_id = userId
+}
 
 const showToast = (message: string, type: 'success' | 'error' | 'warning') => {
   toast.message = message
@@ -99,6 +107,28 @@ const handleLogin = async () => {
         </div>
 
         <form @submit.prevent="handleLogin" class="space-y-4">
+          <!-- 已登录账户快速选择 -->
+          <div v-if="authStore.userAccounts.length > 0">
+            <label class="label">历史账户</label>
+            <div class="relative">
+              <select
+                v-model="selectedAccount"
+                @change="onSelectAccount(selectedAccount)"
+                class="input-field pl-4 pr-10 appearance-none cursor-pointer"
+              >
+                <option value="">选择曾经登录过的账户...</option>
+                <option
+                  v-for="account in authStore.userAccounts"
+                  :key="account.userId"
+                  :value="account.userId"
+                >
+                  {{ account.name }} ({{ account.userId }})
+                </option>
+              </select>
+              <ChevronDown class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
+
           <div>
             <label class="label">用户名</label>
             <div class="relative">
