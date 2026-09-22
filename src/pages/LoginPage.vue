@@ -17,17 +17,29 @@ const toast = reactive({
   type: 'success' as 'success' | 'error' | 'warning',
 })
 
+// 默认填充上次登录成功的账户；若记录已不存在（如清除了历史），则回退到第一个历史账户
+const getDefaultUserId = (): string => {
+  const lastUserId = localStorage.getItem('lastLoginUserId') || ''
+  if (lastUserId && authStore.userAccounts.some(a => a.userId === lastUserId)) {
+    return lastUserId
+  }
+  return authStore.userAccounts[0]?.userId || ''
+}
+
+const defaultUserId = getDefaultUserId()
+
 const loginForm = reactive({
-  user_id: '',
+  user_id: defaultUserId,
   password: '',
 })
 
-// 已登录账户下拉选择
-const selectedAccount = ref('')
+// 历史账号下拉面板（与账号输入框合并，点击尾部箭头展开）
+const showAccountDropdown = ref(false)
 
-// 选择已保存的账户时，自动填充 user_id
-const onSelectAccount = (userId: string) => {
+// 从历史账号列表中选择一个，填充到账号输入框并关闭下拉
+const pickAccount = (userId: string) => {
   loginForm.user_id = userId
+  showAccountDropdown.value = false
 }
 
 const showToast = (message: string, type: 'success' | 'error' | 'warning') => {
@@ -45,7 +57,7 @@ const goToRegister = () => {
 
 const handleLogin = async () => {
   if (!loginForm.user_id || !loginForm.password) {
-    showToast('请填写用户名和密码', 'error')
+    showToast('请填写账号和密码', 'error')
     return
   }
 
@@ -62,7 +74,7 @@ const handleLogin = async () => {
       router.push('/dashboard')
     }, 1000)
   } catch (error: any) {
-    let errorMessage = '登录失败，请检查用户名和密码'
+    let errorMessage = '登录失败，请检查账号和密码'
     if (error.message) {
       if (error.message.includes('Network Error') || error.message.includes('ERR_FAILED')) {
         errorMessage = '无法连接到服务器，请检查网络或联系管理员'
@@ -107,39 +119,64 @@ const handleLogin = async () => {
         </div>
 
         <form @submit.prevent="handleLogin" class="space-y-4">
-          <!-- 已登录账户快速选择 -->
-          <div v-if="authStore.userAccounts.length > 0">
-            <label class="label">历史账户</label>
-            <div class="relative">
-              <select
-                v-model="selectedAccount"
-                @change="onSelectAccount(selectedAccount)"
-                class="input-field pl-4 pr-10 appearance-none cursor-pointer"
-              >
-                <option value="">选择曾经登录过的账户...</option>
-                <option
-                  v-for="account in authStore.userAccounts"
-                  :key="account.userId"
-                  :value="account.userId"
-                >
-                  {{ account.name }} ({{ account.userId }})
-                </option>
-              </select>
-              <ChevronDown class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-            </div>
-          </div>
-
+          <!-- 账号输入框（尾部箭头展开历史账号） -->
           <div>
-            <label class="label">用户名</label>
+            <label class="label">账号</label>
             <div class="relative">
               <User class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 v-model="loginForm.user_id"
                 type="text"
-                class="input-field pl-12"
-                placeholder="请输入用户名"
+                :class="['input-field pl-12', authStore.userAccounts.length > 0 ? 'pr-12' : '']"
+                placeholder="请输入账号"
                 autocomplete="off"
               />
+              <!-- 历史账号下拉箭头，仅有历史账号时显示 -->
+              <button
+                v-if="authStore.userAccounts.length > 0"
+                type="button"
+                @click="showAccountDropdown = !showAccountDropdown"
+                class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-primary-600 rounded transition-colors"
+                :title="showAccountDropdown ? '关闭历史账号' : '查看历史账号'"
+              >
+                <ChevronDown
+                  class="w-5 h-5 transition-transform"
+                  :class="showAccountDropdown ? 'rotate-180' : ''"
+                />
+              </button>
+
+              <!-- 点击外部时关闭下拉的透明遮罩 -->
+              <div
+                v-if="showAccountDropdown"
+                @click="showAccountDropdown = false"
+                class="fixed inset-0 z-40"
+              ></div>
+
+              <!-- 历史账号下拉面板 -->
+              <div
+                v-if="showAccountDropdown"
+                class="absolute left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-60 overflow-y-auto z-50"
+              >
+                <button
+                  v-for="account in authStore.userAccounts"
+                  :key="account.userId"
+                  type="button"
+                  @click="pickAccount(account.userId)"
+                  class="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-primary-50 transition-colors text-left"
+                >
+                  <div
+                    class="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-sm font-medium flex-shrink-0"
+                  >
+                    {{ account.name.charAt(0) || 'U' }}
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-sm font-medium text-gray-800 truncate">
+                      {{ account.name || account.userId }}
+                    </p>
+                    <p class="text-xs text-gray-500 truncate">ID: {{ account.userId }}</p>
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
 

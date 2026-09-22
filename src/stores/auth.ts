@@ -158,6 +158,8 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('userId', response.user_id)
       setToken(response.user_token)
       password.value = req.password || ''
+      // 记录本次登录的账户，登录页默认填充该账号
+      localStorage.setItem('lastLoginUserId', response.user_id)
       
       try {
         const info = await payGateApi.getUserInfo({ user_id: response.user_id })

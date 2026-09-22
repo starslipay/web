@@ -225,7 +225,7 @@ onUnmounted(() => {
                     </div>
                     <div class="text-left">
                       <p class="text-sm font-medium text-gray-800">{{ account.name || account.userId }}</p>
-                      <p class="text-xs text-gray-500">{{ account.phone || '未绑定手机' }}</p>
+                      <p class="text-xs text-gray-500">ID: {{ account.userId }}</p>
                     </div>
                   </div>
                   <div class="flex items-center gap-2">
