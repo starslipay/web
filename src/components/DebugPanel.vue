@@ -87,10 +87,12 @@ const BIZ_CODE_METRIC = 'pay_biz_code_total'
 const MODULES = ['pay_gate', 'trade_itg', 'user_mgr', 'account_mgr', 'order_mgr', 'trade_ig_mgr']
 const RPC_MODULES = MODULES.filter(m => m !== 'pay_gate')
 
-type MetricDim = 'requests' | 'errors' | 'avgLatency' | 'maxLatency'
+type MetricDim = 'requests' | 'errors' | 'successRate' | 'errorRate' | 'avgLatency' | 'maxLatency'
 const METRIC_DIMS: { key: MetricDim; label: string; desc: string }[] = [
   { key: 'requests', label: '请求数', desc: '每分钟/每秒请求数' },
   { key: 'errors', label: '错误码', desc: '按状态码拆分请求量' },
+  { key: 'successRate', label: '成功率', desc: 'code=0 成功请求占比（%）' },
+  { key: 'errorRate', label: '错误率', desc: 'code!=0 业务错误请求占比（%）' },
   { key: 'avgLatency', label: '平均耗时', desc: 'avg(duration_sum / duration_count) 毫秒' },
   { key: 'maxLatency', label: '最高耗时', desc: 'P99 分位耗时 毫秒' },
 ]
@@ -308,6 +310,30 @@ const buildErrorsExpr = (moduleName: string): { expr: string; legend: string } =
   return { expr, legend: '{{code}}' }
 }
 
+// 成功率/错误率：基于业务码指标 pay_biz_code_total（code=0 成功，非 0 业务错误）
+// 分子 = code 命中速率之和，分母 = 全部请求速率之和，×100 为百分比（0-100）
+// 比值与时间窗口无关（increase[1m] 与 rate[1m] 的比值相同），统一用 rate
+const buildCodeRatioExpr = (moduleName: string, success: boolean): { expr: string; legend: string } => {
+  const filter = endpointFilter.value.trim()
+  const codeCond = success ? 'code="0"' : 'code!="0"'
+  const ratioName = success ? '成功率' : '错误率'
+  if (filter) {
+    const numerator = `${BIZ_CODE_METRIC}{service="${moduleName}", method=~"${filter}", ${codeCond}}`
+    const denominator = `${BIZ_CODE_METRIC}{service="${moduleName}", method=~"${filter}"}`
+    return {
+      expr: `sum(rate(${numerator}[1m])) / sum(rate(${denominator}[1m])) * 100`,
+      legend: `${ratioName}(%)`,
+    }
+  }
+  // 无筛选：按接口(method)拆分，展示该模块每个接口各自的成功率/错误率
+  const numerator = `${BIZ_CODE_METRIC}{service="${moduleName}", ${codeCond}}`
+  const denominator = `${BIZ_CODE_METRIC}{service="${moduleName}"}`
+  return {
+    expr: `sum by (method) (rate(${numerator}[1m])) / sum by (method) (rate(${denominator}[1m])) * 100`,
+    legend: '{{method}}',
+  }
+}
+
 // 平均耗时：rate(metric_sum{...}) / rate(metric_count{...})，按接口聚合
 // 注意：_sum/_count 是 metric 名的后缀，必须在花括号前面，如 http_server_requests_duration_ms_sum{...}
 const buildAvgLatencyExpr = (moduleName: string): { expr: string; legend: string } => {
@@ -339,6 +365,8 @@ const getModuleExpr = (moduleName: string): { expr: string; legend: string } => 
   switch (metricDim.value) {
     case 'requests': return buildRequestsExpr(moduleName)
     case 'errors': return buildErrorsExpr(moduleName)
+    case 'successRate': return buildCodeRatioExpr(moduleName, true)
+    case 'errorRate': return buildCodeRatioExpr(moduleName, false)
     case 'avgLatency': return buildAvgLatencyExpr(moduleName)
     case 'maxLatency': return buildMaxLatencyExpr(moduleName)
   }
@@ -363,6 +391,14 @@ const getMetricsHelpText = (): string => {
       return filter
         ? '筛选接口 + 业务错误码：pay_biz_code_total 按 code 拆分（含 code=0 成功）'
         : '业务错误码：pay_biz_code_total 按 code 拆分（0=成功, 100001006=token失效, 100000002=RPC错误）'
+    case 'successRate':
+      return filter
+        ? '筛选接口：成功率 = sum(rate(code=0)) / sum(rate(all)) × 100（%）'
+        : '按接口拆分：code=0 成功请求占比（%），sum by(method)(rate(code=0)) / sum by(method)(rate(all)) × 100'
+    case 'errorRate':
+      return filter
+        ? '筛选接口：错误率 = sum(rate(code!=0)) / sum(rate(all)) × 100（%）'
+        : '按接口拆分：code!=0 业务错误请求占比（%），sum by(method)(rate(code!=0)) / sum by(method)(rate(all)) × 100'
     case 'avgLatency':
       return filter
         ? '筛选接口：按 code 拆分，rate(sum)/rate(count) = 平均耗时(ms)'
@@ -437,6 +473,25 @@ const buildAllModulesPrometheusUrl = (): string => {
       ? `sum by (service, code) (rate(${rpcSelector}[1m]))`
       : `round(sum by (service, code) (increase(${rpcSelector}[1m])))`
     legend = '{{service}} {{code}}'
+  } else if (metricDim.value === 'successRate' || metricDim.value === 'errorRate') {
+    // 成功率/错误率：业务码指标 code=0 成功 / code!=0 错误，按 service 聚合成模块级占比（%）
+    const success = metricDim.value === 'successRate'
+    const codeCond = success ? 'code="0"' : 'code!="0"'
+    const httpOk = filter
+      ? `${BIZ_CODE_METRIC}{service="pay_gate", method=~"${filter}", ${codeCond}}`
+      : `${BIZ_CODE_METRIC}{service="pay_gate", ${codeCond}}`
+    const httpAll = filter
+      ? `${BIZ_CODE_METRIC}{service="pay_gate", method=~"${filter}"}`
+      : `${BIZ_CODE_METRIC}{service="pay_gate"}`
+    const rpcOk = filter
+      ? `${BIZ_CODE_METRIC}{service=~"${RPC_MODULES.join('|')}", method=~"${filter}", ${codeCond}}`
+      : `${BIZ_CODE_METRIC}{service=~"${RPC_MODULES.join('|')}", ${codeCond}}`
+    const rpcAll = filter
+      ? `${BIZ_CODE_METRIC}{service=~"${RPC_MODULES.join('|')}", method=~"${filter}"}`
+      : `${BIZ_CODE_METRIC}{service=~"${RPC_MODULES.join('|')}"}`
+    httpExpr = `sum by (service) (rate(${httpOk}[1m])) / sum by (service) (rate(${httpAll}[1m])) * 100`
+    rpcExpr = `sum by (service) (rate(${rpcOk}[1m])) / sum by (service) (rate(${rpcAll}[1m])) * 100`
+    legend = '{{service}}'
   } else if (metricDim.value === 'avgLatency') {
     const httpLabelStr = filter ? `module="pay_gate", path=~"${filter}"` : `module="pay_gate"`
     const rpcLabelStr = filter ? `module=~"${RPC_MODULES.join('|')}", method=~"${filter}"` : `module=~"${RPC_MODULES.join('|')}"`
@@ -650,6 +705,9 @@ const getTraceId = (traceparent: string): string => {
           </template>
           <template v-else-if="metricDim === 'errors'">
             所有模块: {{ BIZ_CODE_METRIC }}(service/method/code/result) ｜ code=0成功, 非0=业务错误码
+          </template>
+          <template v-else-if="metricDim === 'successRate' || metricDim === 'errorRate'">
+            所有模块: {{ BIZ_CODE_METRIC }}(service/method/code) ｜ {{ metricDim === 'successRate' ? 'code=0 成功请求占比' : 'code!=0 业务错误请求占比' }} ｜ 单位: %（0-100）
           </template>
           <template v-else>
             pay_gate: {{ HTTP_DURATION_METRIC }}(path) ｜ 其余: {{ RPC_DURATION_METRIC }}(method) ｜ 单位: ms

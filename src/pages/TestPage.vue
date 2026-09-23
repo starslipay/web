@@ -149,6 +149,7 @@ const transferAmount = ref('0.01')
 const payAmount = ref('0.01')
 const testVersion = ref(0)
 const testDuration = ref(30)
+const concurrency = ref(10)
 const testMode = ref<'many_to_one' | 'one_to_many' | 'query_balance' | 'pay' | 'smoke_test'>('many_to_one')
 
 const PAY_MERCHANT_ID = '2000000000'
@@ -276,24 +277,30 @@ const avgDuration = computed(() => {
   return Math.round(stats.totalDuration / stats.successCount)
 })
 
+// 压测开始时间戳：用真实时间计算耗时/QPS/倒计时，
+// 避免主线程繁忙导致 setInterval 走秒变慢时 elapsed 被低估、QPS 虚高
+let testStartTime = 0
+
 const qps = computed(() => {
-  const elapsed = (testDuration.value - remainingTime.value) || 1
+  const elapsed = (Date.now() - testStartTime) / 1000
+  if (elapsed <= 0 || stats.totalRequests === 0) return '0.00'
   return (stats.totalRequests / elapsed).toFixed(2)
 })
 
-const p95Duration = computed(() => {
-  if (stats.durations.length === 0) return 0
-  const sorted = [...stats.durations].sort((a, b) => a - b)
-  const index = Math.floor(sorted.length * 0.95)
-  return sorted[Math.min(index, sorted.length - 1)]
-})
+const p95Duration = ref(0)
+const p99Duration = ref(0)
 
-const p99Duration = computed(() => {
-  if (stats.durations.length === 0) return 0
+// P95/P99 每秒随定时器刷新一次，避免每次请求都全量排序拖慢主线程
+const updatePercentiles = () => {
+  if (stats.durations.length === 0) {
+    p95Duration.value = 0
+    p99Duration.value = 0
+    return
+  }
   const sorted = [...stats.durations].sort((a, b) => a - b)
-  const index = Math.floor(sorted.length * 0.99)
-  return sorted[Math.min(index, sorted.length - 1)]
-})
+  p95Duration.value = sorted[Math.min(Math.floor(sorted.length * 0.95), sorted.length - 1)]
+  p99Duration.value = sorted[Math.min(Math.floor(sorted.length * 0.99), sorted.length - 1)]
+}
 
 const successRate = computed(() => {
   if (stats.totalRequests === 0) return '0.00'
@@ -593,6 +600,8 @@ const resetStats = () => {
   stats.maxDuration = 0
   stats.minDuration = Infinity
   stats.durations = []
+  p95Duration.value = 0
+  p99Duration.value = 0
   chartDataPoints.value = []
 }
 
@@ -942,11 +951,16 @@ const runTest = async () => {
     showToast('压测时间不能小于1秒', 'error')
     return
   }
+  if (testMode.value === 'query_balance' && concurrency.value < 1) {
+    showToast('并发数不能小于1', 'error')
+    return
+  }
 
   isRunning.value = true
   stopRequested.value = false
   resetStats()
   remainingTime.value = testDuration.value
+  testStartTime = Date.now()
 
   const amountInCents = Math.round(parseFloat(transferAmount.value) * 100)
   const payAmountInCents = Math.round(parseFloat(payAmount.value) * 100)
@@ -1000,13 +1014,19 @@ const runTest = async () => {
     activeWorkers.delete(workerId)
   }
 
-  for (let i = 0; i < users.length; i++) {
+  // 查询余额模式：并发数与用户数解耦，所有 worker 从用户池随机取用户发起查询
+  const workerCount = testMode.value === 'query_balance'
+    ? Math.max(1, Math.floor(concurrency.value))
+    : users.length
+  for (let i = 0; i < workerCount; i++) {
     workerPromises.push(runWorker(i))
   }
 
   testTimer = setInterval(() => {
-    remainingTime.value--
-    const elapsed = testDuration.value - remainingTime.value
+    // 用真实时间推算倒计时：即使 interval 回调被主线程繁忙延迟，也不会产生累计偏差
+    const elapsed = Math.floor((Date.now() - testStartTime) / 1000)
+    remainingTime.value = Math.max(0, testDuration.value - elapsed)
+    updatePercentiles()
     chartDataPoints.value.push({
       time: `${elapsed}s`,
       qps: parseFloat(qps.value),
@@ -1030,6 +1050,7 @@ const runTest = async () => {
   stopRequested.value = false
   
   if (stats.minDuration === Infinity) stats.minDuration = 0
+  updatePercentiles()
   showToast('压测完成', 'success')
 }
 
@@ -1117,6 +1138,17 @@ onUnmounted(() => {
                   <option value="pay">支付（并发压测支付接口）</option>
                   <option value="smoke_test">全接口测试（串联所有接口冒烟测试）</option>
                 </select>
+              </div>
+              <div v-if="testMode === 'query_balance'">
+                <label class="label">并发数</label>
+                <input
+                  v-model.number="concurrency"
+                  type="number"
+                  min="1"
+                  class="input-field"
+                  :disabled="isRunning"
+                />
+                <p class="text-xs text-gray-400 mt-1">并发查询请求总数，随机使用已生成的用户发起</p>
               </div>
               <div v-if="testMode === 'smoke_test'" class="sm:col-span-2">
                 <p class="text-sm text-gray-500 bg-blue-50 rounded-lg p-3">
