@@ -15,8 +15,8 @@ description: Build correctly encoded Grafana Explore deep links (Loki logs, Temp
   - Loki 日志：`afwwzpsybzsw0a`（type: `loki`）
   - Tempo 链路：`tempo`（type: `tempo`）
   - Prometheus 指标：`prometheus`（type: `prometheus`）
-- 业务模块：`pay_gate`、`trade_itg`、`user_mgr`、`account_mgr`、`order_mgr`、`trade_it_mgr`
-- Loki 容器正则：`pay_gate|trade_itg|user_mgr|account_mgr|order_mgr|trade_it_mgr`
+- 业务模块：`pay_gate`、`trade_itg`、`user_mgr`、`account_mgr`、`order_mgr`、`trade_id_mgr`
+- Loki 容器正则：`pay_gate|trade_itg|user_mgr|account_mgr|order_mgr|trade_id_mgr`
 
 ## 最关键的编码规则（曾踩坑）
 
