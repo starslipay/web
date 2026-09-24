@@ -11,7 +11,7 @@ const LOKI_UID = 'afwwzpsybzsw0a'
 const TEMPO_UID = 'tempo'
 const PROM_UID = 'prometheus'
 
-const MODULES = ['pay_gate', 'trade_itg', 'user_mgr', 'account_mgr', 'order_mgr', 'trade_ig_mgr']
+const MODULES = ['pay_gate', 'trade_itg', 'user_mgr', 'account_mgr', 'order_mgr', 'trade_it_mgr']
 const RPC_MODULES = MODULES.filter((m) => m !== 'pay_gate')
 const CONTAINER_PATTERN = MODULES.join('|')
 

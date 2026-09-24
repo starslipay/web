@@ -11,7 +11,7 @@ const copiedId = ref<number | null>(null)
 // Grafana Loki 日志查询配置
 const GRAFANA_BASE = 'http://43.136.84.124:31000/explore'
 const LOKI_DATASOURCE_UID = 'afwwzpsybzsw0a'
-const CONTAINER_PATTERN = 'pay_gate|trade_itg|user_mgr|account_mgr|order_mgr|trade_ig_mgr'
+const CONTAINER_PATTERN = 'pay_gate|trade_itg|user_mgr|account_mgr|order_mgr|trade_it_mgr'
 
 // 根据 trace-id 生成 Grafana Loki 日志查询链接
 const buildLogQueryUrl = (traceparent: string): string => {
@@ -84,7 +84,7 @@ const HTTP_DURATION_METRIC = 'http_server_requests_duration_ms'
 const RPC_DURATION_METRIC = 'rpc_server_requests_duration_ms'
 // 自定义业务错误码指标（所有模块统一上报，标签: service/method/code/result）
 const BIZ_CODE_METRIC = 'pay_biz_code_total'
-const MODULES = ['pay_gate', 'trade_itg', 'user_mgr', 'account_mgr', 'order_mgr', 'trade_ig_mgr']
+const MODULES = ['pay_gate', 'trade_itg', 'user_mgr', 'account_mgr', 'order_mgr', 'trade_it_mgr']
 const RPC_MODULES = MODULES.filter(m => m !== 'pay_gate')
 
 type MetricDim = 'requests' | 'errors' | 'successRate' | 'errorRate' | 'avgLatency' | 'maxLatency'
