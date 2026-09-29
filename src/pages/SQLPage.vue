@@ -23,6 +23,7 @@ const tables: TableConfig[] = [
   { name: 't_relation', primaryKey: 'user_id', primaryKeyType: 'string', database: 'user_db', description: '用户关联表' },
   { name: 't_user_info', primaryKey: 'uid', primaryKeyType: 'numeric', database: 'user_db', description: '用户信息表' },
   { name: 't_order', primaryKey: 'transaction_id', primaryKeyType: 'string', database: 'order_db', description: '订单表' },
+  { name: 't_id_segment', primaryKey: 'scene_id', primaryKeyType: 'numeric', database: 'id_generator_db', description: '全局唯一ID号段表' },
 ]
 
 const inputValue = ref('')
