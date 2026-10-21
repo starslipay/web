@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useDebugStore } from '@/stores/debug'
-import { X, Trash2, Copy, Check, ChevronDown, ChevronRight, Clock, Zap, AlertCircle, ExternalLink, Network, BarChart3, Search, GitBranch, ScrollText } from 'lucide-vue-next'
+import { X, Trash2, Copy, Check, ChevronDown, ChevronRight, Clock, Zap, AlertCircle, ExternalLink, Network, BarChart3, Search, GitBranch, ScrollText, Database } from 'lucide-vue-next'
 import { ref } from 'vue'
 
 const debugStore = useDebugStore()
@@ -10,6 +10,8 @@ const copiedId = ref<number | null>(null)
 
 // Grafana Loki 日志查询配置
 const GRAFANA_BASE = 'http://43.136.84.124:31000/explore'
+// Grafana 仪表盘基础地址（用于拼接各组件监控入口）
+const GRAFANA_DASHBOARD_BASE = 'http://43.136.84.124:31000/d'
 const LOKI_DATASOURCE_UID = 'afwwzpsybzsw0a'
 const CONTAINER_PATTERN = 'pay_gate|trade_itg|user_mgr|account_mgr|order_mgr|trade_id_mgr'
 
@@ -84,7 +86,7 @@ const HTTP_DURATION_METRIC = 'http_server_requests_duration_ms'
 const RPC_DURATION_METRIC = 'rpc_server_requests_duration_ms'
 // 自定义业务错误码指标（所有模块统一上报，标签: service/method/code/result）
 const BIZ_CODE_METRIC = 'pay_biz_code_total'
-const MODULES = ['pay_gate', 'trade_itg', 'user_mgr', 'account_mgr', 'order_mgr', 'trade_id_mgr']
+const MODULES = ['pay_gate', 'trade_itg', 'user_mgr', 'account_mgr', 'order_mgr', 'trade_id_mgr', 'cache_mgr']
 const RPC_MODULES = MODULES.filter(m => m !== 'pay_gate')
 
 type MetricDim = 'requests' | 'errors' | 'successRate' | 'errorRate' | 'avgLatency' | 'maxLatency'
@@ -263,6 +265,62 @@ const hasLogFilter = (): boolean => {
     || logEndpointFilter.value.trim() !== ''
     || logErrorCodeFilter.value.trim() !== ''
     || logUserIdFilter.value.trim() !== ''
+}
+
+// ===== 组件监控 =====
+// 通过 Grafana Dashboard 展示各基础设施组件的运行状态
+// url 形如：http://<grafana>/d/<uid>?orgId=1&refresh=5s
+const componentsExpanded = ref(true)
+
+interface ComponentDashboard {
+  // 组件标识（用于 key 与样式区分）
+  key: string
+  // 调试面板中显示的名称
+  label: string
+  // Grafana Dashboard 的 UID（http://<grafana>/d/<uid> 中的 <uid> 部分）
+  uid: string
+  // 说明文案
+  desc?: string
+}
+
+// 各组件监控入口配置
+// uid 即 Grafana Dashboard 的 UID，通过 buildComponentDashboardUrl 拼接为完整 URL
+const COMPONENT_DASHBOARDS: ComponentDashboard[] = [
+  {
+    key: 'overview',
+    label: '业务总览',
+    uid: 'starslipay-overview',
+    desc: 'StarSLiPay 业务整体运行状态总览',
+  },
+  {
+    key: 'mysql',
+    label: 'MySQL（主+2备）',
+    uid: 'mysql-overview',
+    desc: '数据库连接、查询速率、慢查询、主从复制延迟等监控指标',
+  },
+  {
+    key: 'redis',
+    label: 'Redis（1主2从3哨兵）',
+    uid: 'redis-overview',
+    desc: '内存占用、命中率、QPS、主从复制与哨兵状态监控',
+  },
+  {
+    key: 'kafka',
+    label: 'Kafka（3节点集群）',
+    uid: 'kafka-overview',
+    desc: 'Broker 状态、Topic 分区、消费组滞后等监控指标',
+  },
+  {
+    key: 'etcd',
+    label: 'etcd',
+    uid: 'etcd-overview',
+    desc: '集群健康、Leader 状态、键值操作 QPS、磁盘与网络指标',
+  },
+]
+
+// 生成组件监控入口的完整 URL
+const buildComponentDashboardUrl = (item: ComponentDashboard): string => {
+  return `${GRAFANA_DASHBOARD_BASE}/${item.uid}?orgId=1&refresh=5s`
 }
 
 // 根据模块名获取对应的计数指标名
@@ -946,6 +1004,42 @@ const getTraceId = (traceparent: string): string => {
           LogQL: <span class="text-cyan-400/80">{{ buildLogSearchQuery() }}</span>
           <br />
           说明：模块名 → container 标签；trace-id/错误码/user_id → 行内容包含(\|=)；接口名 → 行内容正则匹配(\|~)；查询范围最近 1 小时
+        </p>
+      </div>
+    </div>
+
+    <!-- 组件监控 -->
+    <div class="border-b border-gray-700 bg-gray-800/80">
+      <div
+        @click="componentsExpanded = !componentsExpanded"
+        class="flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-gray-700/50 transition-colors"
+      >
+        <div class="flex items-center gap-2">
+          <Database class="w-4 h-4 text-purple-400" />
+          <span class="text-xs font-medium text-purple-400">组件监控</span>
+        </div>
+        <component
+          :is="componentsExpanded ? ChevronDown : ChevronRight"
+          class="w-4 h-4 text-gray-400"
+        />
+      </div>
+      <div v-if="componentsExpanded" class="px-4 pb-3">
+        <div class="flex flex-wrap gap-2">
+          <a
+            v-for="item in COMPONENT_DASHBOARDS"
+            :key="item.key"
+            :href="buildComponentDashboardUrl(item)"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-1 px-3 py-1 rounded text-xs font-medium bg-purple-600/20 text-purple-300 border border-purple-600/40 hover:bg-purple-600/40 transition-colors"
+            :title="item.desc || `打开 Grafana ${item.label} 监控仪表盘`"
+          >
+            <ExternalLink class="w-3.5 h-3.5" />
+            {{ item.label }}
+          </a>
+        </div>
+        <p class="mt-2 text-[10px] text-gray-500 font-mono break-all">
+          说明：打开各组件的 Grafana 监控仪表盘，查看运行状态指标（5 秒自动刷新）
         </p>
       </div>
     </div>
