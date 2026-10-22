@@ -13,7 +13,7 @@ const GRAFANA_BASE = 'http://43.136.84.124:31000/explore'
 // Grafana 仪表盘基础地址（用于拼接各组件监控入口）
 const GRAFANA_DASHBOARD_BASE = 'http://43.136.84.124:31000/d'
 const LOKI_DATASOURCE_UID = 'afwwzpsybzsw0a'
-const CONTAINER_PATTERN = 'pay_gate|trade_itg|user_mgr|account_mgr|order_mgr|trade_id_mgr'
+const CONTAINER_PATTERN = 'pay_gate|trade_itg|user_mgr|account_mgr|order_mgr|trade_id_mgr|cache_mgr'
 
 // 根据 trace-id 生成 Grafana Loki 日志查询链接
 const buildLogQueryUrl = (traceparent: string): string => {
