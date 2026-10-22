@@ -500,6 +500,16 @@ onMounted(async () => {
         </div>
         <h3 class="text-xl font-bold text-gray-800 mt-6">支付失败</h3>
         <p class="text-red-500 mt-2">{{ errorMsg }}</p>
+        <div v-if="payTransactionId || outOrderNo" class="mt-6 p-3 bg-gray-50 rounded-lg text-left space-y-1.5">
+          <div v-if="payTransactionId" class="flex justify-between text-xs">
+            <span class="text-gray-500">交易单号</span>
+            <span class="font-mono text-gray-700">{{ payTransactionId }}</span>
+          </div>
+          <div v-if="outOrderNo" class="flex justify-between text-xs">
+            <span class="text-gray-500">商户单号</span>
+            <span class="font-mono text-gray-700">{{ outOrderNo }}</span>
+          </div>
+        </div>
         <div class="mt-6 grid grid-cols-2 gap-3">
           <button @click="goToMall" class="btn-outline py-3">
             返回商城
