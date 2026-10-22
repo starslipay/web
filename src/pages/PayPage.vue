@@ -436,6 +436,16 @@ onMounted(async () => {
         <Loader2 class="w-16 h-16 text-primary-600 animate-spin mx-auto" />
         <h3 class="text-xl font-semibold text-gray-800 mt-6">支付处理中...</h3>
         <p class="text-gray-500 mt-2">请稍候，正在完成交易</p>
+        <div v-if="payTransactionId || outOrderNo" class="mt-6 p-3 bg-gray-50 rounded-lg text-left space-y-1.5">
+          <div v-if="payTransactionId" class="flex justify-between text-xs">
+            <span class="text-gray-500">交易单号</span>
+            <span class="font-mono text-gray-700">{{ payTransactionId }}</span>
+          </div>
+          <div v-if="outOrderNo" class="flex justify-between text-xs">
+            <span class="text-gray-500">商户单号</span>
+            <span class="font-mono text-gray-700">{{ outOrderNo }}</span>
+          </div>
+        </div>
       </div>
 
       <!-- 补偿中(支付结果未知, 等待后关单补单) -->
@@ -444,6 +454,16 @@ onMounted(async () => {
         <h3 class="text-xl font-semibold text-gray-800 mt-6">支付结果确认中...</h3>
         <p class="text-gray-500 mt-2">支付接口返回异常，{{ compensationCountdown }} 秒后自动发起关单补单</p>
         <p class="text-xs text-gray-400 mt-1">补单将查询订单真实状态，将其置为成功或关闭</p>
+        <div v-if="payTransactionId || outOrderNo" class="mt-6 p-3 bg-gray-50 rounded-lg text-left space-y-1.5">
+          <div v-if="payTransactionId" class="flex justify-between text-xs">
+            <span class="text-gray-500">交易单号</span>
+            <span class="font-mono text-gray-700">{{ payTransactionId }}</span>
+          </div>
+          <div v-if="outOrderNo" class="flex justify-between text-xs">
+            <span class="text-gray-500">商户单号</span>
+            <span class="font-mono text-gray-700">{{ outOrderNo }}</span>
+          </div>
+        </div>
       </div>
 
       <!-- 支付成功 -->

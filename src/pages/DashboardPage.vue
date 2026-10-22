@@ -324,6 +324,7 @@ onUnmounted(() => {
           </div>
         </div>
 
+        <!-- 转账/充值/提现 -->
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <button
             @click="goToTransfer"
@@ -360,7 +361,10 @@ onUnmounted(() => {
             <h3 class="font-semibold text-gray-800">提现到银行</h3>
             <p class="text-sm text-gray-500 mt-1">C2Bank提现</p>
           </button>
+        </div>
 
+        <!-- 个人资料/交易明细 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4">
           <button
             @click="goToProfile"
             class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
@@ -384,7 +388,10 @@ onUnmounted(() => {
             <h3 class="font-semibold text-gray-800">交易明细</h3>
             <p class="text-sm text-gray-500 mt-1">查看交易记录</p>
           </button>
+        </div>
 
+        <!-- 商城/我的订单 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4">
           <button
             @click="goToMall"
             class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
