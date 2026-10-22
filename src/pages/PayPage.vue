@@ -93,6 +93,21 @@ const toggleCompensateEnabled = () => {
   localStorage.setItem(COMPENSATION_ENABLED_KEY, compensateEnabled.value ? '1' : '0')
 }
 
+// mock断点选项(与 pay_gate BanPayReq.mock_flag 对齐)
+const MOCK_FLAG_KEY = 'pay_mock_flag'
+const MOCK_FLAG_OPTIONS = [
+  { value: 0, label: '0 - 正常' },
+  { value: 1, label: '1 - 下单前中断' },
+  { value: 2, label: '2 - C2B扣款前中断' },
+  { value: 3, label: '3 - 订单更新前中断' },
+  { value: 4, label: '4 - 订单更新后中断' },
+]
+const mockFlag = ref(Number(localStorage.getItem(MOCK_FLAG_KEY) || '0'))
+
+const setMockFlag = () => {
+  localStorage.setItem(MOCK_FLAG_KEY, String(mockFlag.value))
+}
+
 // 补偿流程状态
 const compensationCountdown = ref(0)
 let compensationTimer: ReturnType<typeof setInterval> | null = null
@@ -229,6 +244,7 @@ const doPay = async () => {
       verify_type: 1,
       password: password.value,
       memo: productInfo.value.name,
+      mock_flag: mockFlag.value,
     })
 
     // 3. 支付成功，保存订单到本地
@@ -389,6 +405,21 @@ onMounted(async () => {
                 ]"
               />
             </button>
+          </div>
+          <div class="flex items-center justify-between mt-3 p-3 bg-gray-50 rounded-lg">
+            <div class="flex items-center gap-2">
+              <Wrench class="w-4 h-4 text-gray-400" />
+              <span class="text-sm text-gray-500">Mock断点</span>
+            </div>
+            <select
+              v-model.number="mockFlag"
+              @change="setMockFlag"
+              class="text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option v-for="opt in MOCK_FLAG_OPTIONS" :key="opt.value" :value="opt.value">
+                {{ opt.label }}
+              </option>
+            </select>
           </div>
           <div
             v-if="authStore.balanceInfo && authStore.balanceInfo.balance < productInfo.price"

@@ -3,7 +3,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDebugStore } from '@/stores/debug'
-import { Server, User, Lock, Eye, EyeOff, UserPlus, Zap, ChevronDown } from 'lucide-vue-next'
+import { Server, User, Lock, Eye, EyeOff, UserPlus, Zap, ChevronDown, X } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -40,6 +40,22 @@ const showAccountDropdown = ref(false)
 const pickAccount = (userId: string) => {
   loginForm.user_id = userId
   showAccountDropdown.value = false
+}
+
+// 从历史账号列表中删除一个本地账号; 若删除的是当前输入框账号, 同步清空输入框
+const removeAccount = (userId: string) => {
+  authStore.removeUserAccount(userId)
+  if (loginForm.user_id === userId) {
+    loginForm.user_id = authStore.userAccounts[0]?.userId || ''
+  }
+  // 若删除的是 lastLoginUserId, 同步清理
+  if (localStorage.getItem('lastLoginUserId') === userId) {
+    localStorage.removeItem('lastLoginUserId')
+  }
+  if (authStore.userAccounts.length === 0) {
+    showAccountDropdown.value = false
+  }
+  showToast('已删除该账号', 'success')
 }
 
 const showToast = (message: string, type: 'success' | 'error' | 'warning') => {
@@ -162,19 +178,29 @@ const handleLogin = async () => {
                   :key="account.userId"
                   type="button"
                   @click="pickAccount(account.userId)"
-                  class="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-primary-50 transition-colors text-left"
+                  class="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-primary-50 transition-colors text-left group"
                 >
                   <div
                     class="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-sm font-medium flex-shrink-0"
                   >
                     {{ account.name.charAt(0) || 'U' }}
                   </div>
-                  <div class="min-w-0">
+                  <div class="min-w-0 flex-1">
                     <p class="text-sm font-medium text-gray-800 truncate">
                       {{ account.name || account.userId }}
                     </p>
                     <p class="text-xs text-gray-500 truncate">ID: {{ account.userId }}</p>
                   </div>
+                  <span
+                    role="button"
+                    tabindex="0"
+                    @click.stop="removeAccount(account.userId)"
+                    @keydown.enter.stop="removeAccount(account.userId)"
+                    title="从本地删除该账号"
+                    class="flex-shrink-0 p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                  >
+                    <X class="w-4 h-4" />
+                  </span>
                 </button>
               </div>
             </div>

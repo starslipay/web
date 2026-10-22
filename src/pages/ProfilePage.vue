@@ -13,6 +13,8 @@ const debugStore = useDebugStore()
 const loading = ref(true)
 const editing = ref(false)
 const saving = ref(false)
+const showCancelConfirm = ref(false)
+const cancelling = ref(false)
 let refreshInterval: ReturnType<typeof setInterval> | null = null
 const toast = reactive({
   show: false,
@@ -114,6 +116,36 @@ const refreshData = async () => {
     showToast(msg, 'error')
   } finally {
     loading.value = false
+  }
+}
+
+// 注销账户: 先校验余额必须为0, 再调用pay_gate cancel_user; 成功后清空会话并回到登录页
+const handleCancelUser = async () => {
+  if (!authStore.userId) {
+    showToast('未登录', 'error')
+    return
+  }
+  cancelling.value = true
+  try {
+    // 注销前查询余额, 余额不为0则不允许注销
+    const balanceInfo = await payGateApi.getUserBalanceInfo({ user_id: authStore.userId })
+    if (balanceInfo && balanceInfo.balance > 0) {
+      const yuan = (balanceInfo.balance / 100).toFixed(2)
+      showToast(`账户余额 ¥${yuan}，请先将余额提现后再注销`, 'warning')
+      showCancelConfirm.value = false
+      return
+    }
+    await payGateApi.cancelUser({ user_id: authStore.userId })
+    showToast('账户已注销', 'success')
+    showCancelConfirm.value = false
+    // 注销后清空当前会话并回到登录页
+    authStore.logout()
+    setTimeout(() => router.push('/login'), 800)
+  } catch (error) {
+    const msg = (error as Error).message || '注销失败'
+    showToast(msg, 'error')
+  } finally {
+    cancelling.value = false
   }
 }
 
@@ -269,6 +301,16 @@ onUnmounted(() => {
               </p>
             </div>
           </div>
+
+          <!-- 注销账户入口(危险操作) -->
+          <div class="pt-2 border-t border-gray-100">
+            <button
+              @click="showCancelConfirm = true"
+              class="w-full py-2.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              注销账户
+            </button>
+          </div>
         </div>
 
         <div v-else class="space-y-4">
@@ -371,6 +413,42 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- 注销账户确认对话框 -->
+    <Transition name="toast">
+      <div
+        v-if="showCancelConfirm"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+        @click.self="showCancelConfirm = false"
+      >
+        <div class="card w-full max-w-md mx-4 p-6">
+          <h3 class="text-lg font-bold text-gray-800">注销账户</h3>
+          <p class="text-sm text-gray-600 mt-3 leading-relaxed">
+            注销后当前账户将被<span class="text-red-600 font-medium">软删除且不可重新注册</span>，余额与交易记录将无法通过本账户访问。
+            请确认您已了解相关后果。
+          </p>
+          <p class="text-sm text-gray-600 mt-2">
+            当前用户ID：<span class="font-mono text-gray-800">{{ authStore.userId }}</span>
+          </p>
+          <div class="flex gap-3 mt-6">
+            <button
+              @click="showCancelConfirm = false"
+              :disabled="cancelling"
+              class="flex-1 btn-outline"
+            >
+              取消
+            </button>
+            <button
+              @click="handleCancelUser"
+              :disabled="cancelling"
+              class="flex-1 py-2.5 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {{ cancelling ? '注销中...' : '确认注销' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
 
     <Transition name="toast">
       <div

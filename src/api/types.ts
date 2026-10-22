@@ -34,6 +34,14 @@ export interface RegUserRsp {
   user_id: string
 }
 
+export interface CancelUserReq {
+  user_id?: string // 用户ID
+}
+
+export interface CancelUserRsp {
+  user_id: string // 用户ID
+}
+
 export interface GetUserInfoReq {
   user_id?: string
 }
@@ -209,6 +217,7 @@ export interface BanPayReq {
   verify_type?: number
   password?: string
   memo?: string
+  mock_flag?: number // 测试用断点控制: 0=正常, 1=下单前中断, 2=C2B扣款前中断, 3=订单更新前中断, 4=订单更新后中断
 }
 
 export interface BanPayRsp {

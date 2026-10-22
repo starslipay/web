@@ -6,6 +6,8 @@ import type {
   UpdateUserInfoRsp,
   RegUserReq,
   RegUserRsp,
+  CancelUserReq,
+  CancelUserRsp,
   GetUserInfoReq,
   GetUserInfoRsp,
   GetUserBalanceInfoReq,
@@ -49,6 +51,10 @@ export const payGateApi = {
 
   regUser: async (req: RegUserReq): Promise<RegUserRsp> => {
     return api.post('/api/pay_gate/reg_user', req) as unknown as RegUserRsp
+  },
+
+  cancelUser: async (req: CancelUserReq): Promise<CancelUserRsp> => {
+    return api.post('/api/pay_gate/cancel_user', req) as unknown as CancelUserRsp
   },
 
   getUserToken: async (req: GetUserTokenReq): Promise<GetUserTokenRsp> => {
