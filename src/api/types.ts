@@ -249,3 +249,39 @@ export interface QueryOrderRsp {
   trade_state: number
   order_success_token: string
 }
+
+export interface QueryC2BBillReq {
+  transaction_id: string
+}
+
+export interface QueryC2BBillRsp {
+  transaction_id: string
+  out_trade_no: string
+  uid: number
+  user_id: string
+  merchant_uid: number
+  merchant_id: string
+  amount: number
+  state: number
+  pay_time: string
+  deduct_token: string
+}
+
+export interface CloseOrSupplyOrderReq {
+  transaction_id?: string
+  out_order_no?: string
+  merchant_id?: string
+  user_id?: string
+  amount?: number
+}
+
+export interface CloseOrSupplyOrderRsp {
+  result_code: number
+  transaction_id: string
+  out_order_no: string
+  merchant_id: string
+  user_id: string
+  amount: number
+  pay_time: string
+  order_success_token: string
+}

@@ -4,8 +4,8 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDebugStore } from '@/stores/debug'
 import { payGateApi } from '@/api/pay_gate'
-import type { QueryOrderRsp } from '@/api/types'
-import { ArrowLeft, Search, Clock, Users, FileText, Zap, Wallet, Building, User as UserIcon, CheckCircle, Hash, Calendar, Store, ShoppingCart } from 'lucide-vue-next'
+import type { QueryOrderRsp, QueryC2BBillRsp } from '@/api/types'
+import { ArrowLeft, Search, Clock, Users, FileText, Zap, Wallet, Building, User as UserIcon, CheckCircle, Hash, Calendar, Store, ShoppingCart, ReceiptText, XCircle } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -15,6 +15,9 @@ const loading = ref(false)
 const searching = ref(false)
 const orderInfo = ref<QueryOrderRsp | null>(null)
 const notFound = ref(false)
+// 顺带查询的C2B单据(用于与订单数据对比)
+const c2bInfo = ref<QueryC2BBillRsp | null>(null)
+const c2bNotFound = ref(false)
 
 const form = reactive({
   transaction_id: '',
@@ -78,18 +81,35 @@ const queryOrder = async () => {
   loading.value = true
   notFound.value = false
   orderInfo.value = null
+  c2bInfo.value = null
+  c2bNotFound.value = false
 
   try {
-    const response = await payGateApi.queryOrder({
-      transaction_id: form.transaction_id.trim(),
-    })
-    orderInfo.value = response
-  } catch (error) {
-    const msg = (error as Error).message || '查询失败'
-    if (msg.includes('not found') || msg.includes('不存在')) {
-      notFound.value = true
+    // 并行查询订单和C2B单据；C2B查询失败不影响订单展示，仅标记未找到
+    const [orderResult, c2bResult] = await Promise.allSettled([
+      payGateApi.queryOrder({
+        transaction_id: form.transaction_id.trim(),
+      }),
+      payGateApi.queryC2BBill({
+        transaction_id: form.transaction_id.trim(),
+      }),
+    ])
+
+    if (orderResult.status === 'fulfilled') {
+      orderInfo.value = orderResult.value
     } else {
-      showToast(msg, 'error')
+      const msg = orderResult.reason?.message || '查询失败'
+      if (msg.includes('not found') || msg.includes('不存在')) {
+        notFound.value = true
+      } else {
+        showToast(msg, 'error')
+      }
+    }
+
+    if (c2bResult.status === 'fulfilled') {
+      c2bInfo.value = c2bResult.value
+    } else {
+      c2bNotFound.value = true
     }
   } finally {
     searching.value = false
@@ -279,6 +299,118 @@ const queryOrder = async () => {
               <span class="text-sm text-gray-500">成功凭证</span>
             </div>
             <span class="font-medium text-gray-800 font-mono text-xs break-all max-w-[200px]">{{ orderInfo.order_success_token }}<span class="text-amber-500">（生产环境不展示）</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- C2B单据详情(与订单对比) -->
+      <div v-if="orderInfo && c2bInfo" class="card p-6 mt-6 animate-slide-up">
+        <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+          <div class="flex items-center gap-2">
+            <ReceiptText class="w-5 h-5 text-teal-600" />
+            <h2 class="text-lg font-semibold text-gray-800">C2B单据详情</h2>
+            <span class="text-xs text-gray-400">（同单号顺带查询，用于对比）</span>
+          </div>
+          <span
+            :class="[
+              'inline-flex items-center px-2.5 py-1 rounded text-xs font-medium',
+              getTradeStateInfo(c2bInfo.state).bg,
+              getTradeStateInfo(c2bInfo.state).color,
+            ]"
+          >
+            <CheckCircle v-if="c2bInfo.state === 2" class="w-3 h-3 mr-1" />
+            <Clock v-else-if="c2bInfo.state === 1" class="w-3 h-3 mr-1" />
+            {{ getTradeStateInfo(c2bInfo.state).label }}({{ c2bInfo.state }})
+          </span>
+        </div>
+
+        <div class="space-y-4">
+          <!-- 买家信息 -->
+          <div class="p-4 bg-gray-50 rounded-lg">
+            <div class="flex items-center gap-2 mb-3">
+              <UserIcon class="w-4 h-4 text-gray-400" />
+              <span class="text-sm font-medium text-gray-500">买家信息</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <Users class="w-4 h-4 text-gray-400" />
+                <span class="text-sm text-gray-500">用户ID</span>
+              </div>
+              <span class="font-medium text-gray-800">{{ c2bInfo.user_id || '-' }}</span>
+            </div>
+            <div class="flex items-center justify-between mt-2">
+              <div class="flex items-center gap-2">
+                <Hash class="w-4 h-4 text-gray-400" />
+                <span class="text-sm text-gray-500">用户UID</span>
+              </div>
+              <span class="font-medium text-gray-800 font-mono">{{ c2bInfo.uid || '-' }}<span class="text-amber-500">（生产环境不展示）</span></span>
+            </div>
+          </div>
+
+          <!-- 卖家信息 -->
+          <div class="p-4 bg-gray-50 rounded-lg">
+            <div class="flex items-center gap-2 mb-3">
+              <Store class="w-4 h-4 text-gray-400" />
+              <span class="text-sm font-medium text-gray-500">卖家信息</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <Building class="w-4 h-4 text-gray-400" />
+                <span class="text-sm text-gray-500">商户ID</span>
+              </div>
+              <span class="font-medium text-gray-800 font-mono">{{ c2bInfo.merchant_id || '-' }}</span>
+            </div>
+            <div class="flex items-center justify-between mt-2">
+              <div class="flex items-center gap-2">
+                <Hash class="w-4 h-4 text-gray-400" />
+                <span class="text-sm text-gray-500">商户UID</span>
+              </div>
+              <span class="font-medium text-gray-800 font-mono">{{ c2bInfo.merchant_uid || '-' }}<span class="text-amber-500">（生产环境不展示）</span></span>
+            </div>
+          </div>
+
+          <!-- 金额信息 -->
+          <div class="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+            <div class="flex items-center gap-2">
+              <Wallet class="w-4 h-4 text-blue-400" />
+              <span class="text-sm text-blue-600">单据金额</span>
+            </div>
+            <span class="text-xl font-bold text-blue-600">¥{{ formatAmount(c2bInfo.amount) }}</span>
+          </div>
+
+          <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div class="flex items-center gap-2">
+              <FileText class="w-4 h-4 text-gray-400" />
+              <span class="text-sm text-gray-500">商户单号</span>
+            </div>
+            <span class="font-medium text-gray-800 font-mono text-xs break-all">{{ c2bInfo.out_trade_no || '-' }}</span>
+          </div>
+
+          <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div class="flex items-center gap-2">
+              <Calendar class="w-4 h-4 text-gray-400" />
+              <span class="text-sm text-gray-500">支付时间</span>
+            </div>
+            <span class="font-medium text-gray-800">{{ c2bInfo.pay_time ? formatDateTime(c2bInfo.pay_time) : '-' }}</span>
+          </div>
+
+          <div v-if="c2bInfo.deduct_token" class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div class="flex items-center gap-2">
+              <CheckCircle class="w-4 h-4 text-gray-400" />
+              <span class="text-sm text-gray-500">扣款凭证</span>
+            </div>
+            <span class="font-medium text-gray-800 font-mono text-xs break-all max-w-[200px]">{{ c2bInfo.deduct_token }}<span class="text-amber-500">（生产环境不展示）</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- C2B单据未找到提示(不影响订单展示) -->
+      <div v-else-if="orderInfo && c2bNotFound && !loading" class="card p-6 mt-6 animate-slide-up">
+        <div class="flex items-center gap-3 text-gray-400">
+          <XCircle class="w-5 h-5" />
+          <div>
+            <p class="text-sm font-medium text-gray-500">未找到对应的C2B单据</p>
+            <p class="text-xs text-gray-400 mt-0.5">该交易单号可能不存在C2B单据，或单据尚未生成</p>
           </div>
         </div>
       </div>

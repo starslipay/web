@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { payGateApi } from '@/api/pay_gate'
 import type { GetOrderInfoRsp } from '@/api/types'
-import { ArrowLeft, Lock, Eye, EyeOff, ShoppingCart, CreditCard, CheckCircle, AlertTriangle, Loader2, Zap } from 'lucide-vue-next'
+import { ArrowLeft, Lock, Eye, EyeOff, ShoppingCart, CreditCard, CheckCircle, AlertTriangle, Loader2, Zap, Wrench } from 'lucide-vue-next'
 import { useDebugStore } from '@/stores/debug'
 
 const router = useRouter()
@@ -14,10 +14,12 @@ const debugStore = useDebugStore()
 
 const loading = ref(false)
 const showPassword = ref(false)
-const step = ref<'confirm' | 'processing' | 'success' | 'failed'>('confirm')
+const step = ref<'confirm' | 'processing' | 'success' | 'failed' | 'compensating'>('confirm')
 const errorMsg = ref('')
 const password = ref('')
 const outOrderNo = ref('')
+// 本次支付的预交易单号(用于异常时的关单补单)
+let payTransactionId = ''
 
 const toast = reactive({
   show: false,
@@ -78,6 +80,99 @@ const generateOutOrderNo = (): string => {
   return result
 }
 
+// ===== 支付异常补偿(关单补单) =====
+// 支付失败且非明确失败(密码错误/参数错误等)时, 等待10秒后调用关单补单接口将订单推到终态
+const COMPENSATION_DELAY_SECONDS = 10
+const COMPENSATION_ENABLED_KEY = 'pay_compensation_enabled'
+
+// 补偿开关(默认开启, 持久化到localStorage)
+const compensateEnabled = ref(localStorage.getItem(COMPENSATION_ENABLED_KEY) !== '0')
+
+const toggleCompensateEnabled = () => {
+  compensateEnabled.value = !compensateEnabled.value
+  localStorage.setItem(COMPENSATION_ENABLED_KEY, compensateEnabled.value ? '1' : '0')
+}
+
+// 补偿流程状态
+const compensationCountdown = ref(0)
+let compensationTimer: ReturnType<typeof setInterval> | null = null
+
+const clearCompensationTimer = () => {
+  if (compensationTimer) {
+    clearInterval(compensationTimer)
+    compensationTimer = null
+  }
+}
+
+onUnmounted(clearCompensationTimer)
+
+// 判定是否为明确的支付失败(密码错误/参数错误/账号不存在等), 明确失败无需走补偿
+const isExplicitPayFailure = (msg: string): boolean => {
+  return /密码|参数|不存在|校验失败|登录/.test(msg)
+}
+
+// 等待10秒后发起关单补单
+const startCompensation = (transactionId: string) => {
+  // 未拿到交易单号(预下单就失败)说明订单尚未创建, 无需补偿
+  if (!transactionId) {
+    step.value = 'failed'
+    return
+  }
+  step.value = 'compensating'
+  compensationCountdown.value = COMPENSATION_DELAY_SECONDS
+  compensationTimer = setInterval(() => {
+    compensationCountdown.value--
+    if (compensationCountdown.value <= 0) {
+      clearCompensationTimer()
+      doCompensate(transactionId)
+    }
+  }, 1000)
+}
+
+const doCompensate = async (transactionId: string) => {
+  try {
+    const resp = await payGateApi.closeOrSupplyOrder({
+      transaction_id: transactionId,
+      out_order_no: outOrderNo.value,
+      merchant_id: MERCHANT_ID,
+      user_id: authStore.userId || undefined,
+      amount: productInfo.value.price,
+    })
+
+    if (resp.result_code === 1) {
+      // 补单成功, 订单置为支付成功
+      const now = new Date()
+      const order: LocalOrder = {
+        transaction_id: resp.transaction_id || transactionId,
+        out_order_no: resp.out_order_no || outOrderNo.value,
+        user_id: authStore.userId || '',
+        merchant_id: MERCHANT_ID,
+        merchant_name: MERCHANT_NAME,
+        product_id: productInfo.value.id,
+        product_name: productInfo.value.name,
+        product_desc: productInfo.value.desc,
+        amount: productInfo.value.price,
+        pay_time: resp.pay_time || now.toISOString().replace('T', ' ').substring(0, 19),
+        trade_state: 2,
+        order_success_token: resp.order_success_token,
+      }
+      saveOrderToLocal(order)
+      await authStore.getUserBalance()
+      step.value = 'success'
+      showToast('支付结果确认: 补单成功, 订单已完成', 'success')
+    } else {
+      // 订单已关闭
+      step.value = 'failed'
+      errorMsg.value = '支付结果确认: 订单已关闭'
+      showToast('订单已关闭', 'warning')
+    }
+  } catch (error) {
+    step.value = 'failed'
+    errorMsg.value = `关单补单失败: ${(error as Error).message || '未知错误'}`
+    showToast(errorMsg.value, 'error')
+  }
+}
+
 const goBack = () => {
   if (loading.value) return
   router.push('/mall')
@@ -112,6 +207,7 @@ const doPay = async () => {
   loading.value = true
   step.value = 'processing'
   errorMsg.value = ''
+  payTransactionId = ''
 
   try {
     outOrderNo.value = generateOutOrderNo()
@@ -121,6 +217,7 @@ const doPay = async () => {
       user_id: authStore.userId || undefined,
       merchant_id: MERCHANT_ID,
     })
+    payTransactionId = preResp.transaction_id
 
     // 2. 调用余额支付接口
     const payResp = await payGateApi.banPay({
@@ -159,9 +256,16 @@ const doPay = async () => {
     step.value = 'success'
     showToast('支付成功', 'success')
   } catch (error) {
-    step.value = 'failed'
-    errorMsg.value = (error as Error).message || '支付失败，请重试'
-    showToast(errorMsg.value, 'error')
+    const msg = (error as Error).message || '支付失败，请重试'
+    errorMsg.value = msg
+
+    // 明确失败(密码错误/参数错误等)直接展示失败; 非明确失败且开关开启时, 10秒后关单补单
+    if (isExplicitPayFailure(msg) || !compensateEnabled.value) {
+      step.value = 'failed'
+      showToast(msg, 'error')
+    } else {
+      startCompensation(payTransactionId)
+    }
   } finally {
     loading.value = false
   }
@@ -261,6 +365,31 @@ onMounted(async () => {
             <span class="text-sm text-gray-500">当前余额</span>
             <span class="font-semibold text-gray-800">¥{{ formatBalance(authStore.balanceInfo?.balance || 0) }}</span>
           </div>
+          <div class="flex items-center justify-between mt-3 p-3 bg-gray-50 rounded-lg">
+            <div class="flex items-center gap-2">
+              <Wrench class="w-4 h-4 text-gray-400" />
+              <div>
+                <span class="text-sm text-gray-500">异常补偿</span>
+                <p class="text-xs text-gray-400 mt-0.5">支付结果未知时，10秒后自动关单补单</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              @click="toggleCompensateEnabled"
+              :class="[
+                'relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors',
+                compensateEnabled ? 'bg-primary-600' : 'bg-gray-300'
+              ]"
+              :title="compensateEnabled ? '已开启异常补偿，点击关闭' : '已关闭异常补偿，点击开启'"
+            >
+              <span
+                :class="[
+                  'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform',
+                  compensateEnabled ? 'translate-x-6' : 'translate-x-1'
+                ]"
+              />
+            </button>
+          </div>
           <div
             v-if="authStore.balanceInfo && authStore.balanceInfo.balance < productInfo.price"
             class="mt-3 flex items-center gap-2 p-3 bg-red-50 rounded-lg text-red-600 text-sm"
@@ -307,6 +436,14 @@ onMounted(async () => {
         <Loader2 class="w-16 h-16 text-primary-600 animate-spin mx-auto" />
         <h3 class="text-xl font-semibold text-gray-800 mt-6">支付处理中...</h3>
         <p class="text-gray-500 mt-2">请稍候，正在完成交易</p>
+      </div>
+
+      <!-- 补偿中(支付结果未知, 等待后关单补单) -->
+      <div v-if="step === 'compensating'" class="card p-10 text-center animate-slide-up">
+        <Loader2 class="w-16 h-16 text-yellow-500 animate-spin mx-auto" />
+        <h3 class="text-xl font-semibold text-gray-800 mt-6">支付结果确认中...</h3>
+        <p class="text-gray-500 mt-2">支付接口返回异常，{{ compensationCountdown }} 秒后自动发起关单补单</p>
+        <p class="text-xs text-gray-400 mt-1">补单将查询订单真实状态，将其置为成功或关闭</p>
       </div>
 
       <!-- 支付成功 -->

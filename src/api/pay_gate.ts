@@ -36,6 +36,10 @@ import type {
   GetOrderInfoRsp,
   QueryOrderReq,
   QueryOrderRsp,
+  QueryC2BBillReq,
+  QueryC2BBillRsp,
+  CloseOrSupplyOrderReq,
+  CloseOrSupplyOrderRsp,
 } from './types'
 
 export const payGateApi = {
@@ -112,5 +116,15 @@ export const payGateApi = {
   // 查单(返回order_mgr订单全部信息)
   queryOrder: async (req: QueryOrderReq): Promise<QueryOrderRsp> => {
     return api.post('/api/pay_gate/query_order', req) as unknown as QueryOrderRsp
+  },
+
+  // 查询c2b单据(返回account_mgr单据全部信息)
+  queryC2BBill: async (req: QueryC2BBillReq): Promise<QueryC2BBillRsp> => {
+    return api.post('/api/pay_gate/query_c2b_bill', req) as unknown as QueryC2BBillRsp
+  },
+
+  // 支付关单或补单
+  closeOrSupplyOrder: async (req: CloseOrSupplyOrderReq): Promise<CloseOrSupplyOrderRsp> => {
+    return api.post('/api/pay_gate/close_or_supply_order', req) as unknown as CloseOrSupplyOrderRsp
   },
 }

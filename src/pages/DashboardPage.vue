@@ -125,6 +125,10 @@ const goToQueryOrder = () => {
   router.push('/query-order')
 }
 
+const goToQueryC2BBill = () => {
+  router.push('/query-c2b-bill')
+}
+
 const goToRegister = () => {
   showAccountMenu.value = false
   router.push('/register')
@@ -382,21 +386,9 @@ onUnmounted(() => {
           </button>
 
           <button
-            @click="goToC2CBill"
-            class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
-            style="animation-delay: 0.6s"
-          >
-            <div class="w-12 h-12 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <Search class="w-6 h-6 text-white" />
-            </div>
-            <h3 class="font-semibold text-gray-800">查询单据</h3>
-            <p class="text-sm text-gray-500 mt-1">C2C单据查询</p>
-          </button>
-
-          <button
             @click="goToMall"
             class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
-            style="animation-delay: 0.7s"
+            style="animation-delay: 0.6s"
           >
             <div class="w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
               <ShoppingCart class="w-6 h-6 text-white" />
@@ -408,7 +400,7 @@ onUnmounted(() => {
           <button
             @click="goToOrders"
             class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
-            style="animation-delay: 0.8s"
+            style="animation-delay: 0.7s"
           >
             <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
               <ClipboardList class="w-6 h-6 text-white" />
@@ -416,18 +408,48 @@ onUnmounted(() => {
             <h3 class="font-semibold text-gray-800">我的订单</h3>
             <p class="text-sm text-gray-500 mt-1">商城订单记录</p>
           </button>
+        </div>
 
-          <button
-            @click="goToQueryOrder"
-            class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
-            style="animation-delay: 0.9s"
-          >
-            <div class="w-12 h-12 bg-gradient-to-br from-violet-500 to-violet-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <ReceiptText class="w-6 h-6 text-white" />
-            </div>
-            <h3 class="font-semibold text-gray-800">查询订单</h3>
-            <p class="text-sm text-gray-500 mt-1">按交易单号查订单</p>
-          </button>
+        <!-- 排查工具：单据/订单查询类功能独立分区 -->
+        <div class="mt-6">
+          <h2 class="text-sm font-medium text-gray-500 mb-3 px-1">排查工具</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <button
+              @click="goToC2CBill"
+              class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
+              style="animation-delay: 0.8s"
+            >
+              <div class="w-12 h-12 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Search class="w-6 h-6 text-white" />
+              </div>
+              <h3 class="font-semibold text-gray-800">查询单据</h3>
+              <p class="text-sm text-gray-500 mt-1">C2C单据查询</p>
+            </button>
+
+            <button
+              @click="goToQueryOrder"
+              class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
+              style="animation-delay: 0.9s"
+            >
+              <div class="w-12 h-12 bg-gradient-to-br from-violet-500 to-violet-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <ReceiptText class="w-6 h-6 text-white" />
+              </div>
+              <h3 class="font-semibold text-gray-800">查询订单</h3>
+              <p class="text-sm text-gray-500 mt-1">按交易单号查订单</p>
+            </button>
+
+            <button
+              @click="goToQueryC2BBill"
+              class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
+              style="animation-delay: 1.0s"
+            >
+              <div class="w-12 h-12 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Search class="w-6 h-6 text-white" />
+              </div>
+              <h3 class="font-semibold text-gray-800">查询C2B单据</h3>
+              <p class="text-sm text-gray-500 mt-1">按交易单号查C2B单</p>
+            </button>
+          </div>
         </div>
 
         <div class="card p-6 animate-slide-up" style="animation-delay: 0.5s">

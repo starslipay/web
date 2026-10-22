@@ -68,6 +68,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/query-c2b-bill',
+    name: 'query-c2b-bill',
+    component: () => import('@/pages/QueryC2BBillPage.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/mall',
     name: 'mall',
     component: () => import('@/pages/MallPage.vue'),
