@@ -231,3 +231,21 @@ export interface GetOrderInfoRsp {
   pay_time: string
   trade_state: number
 }
+
+export interface QueryOrderReq {
+  transaction_id: string
+}
+
+export interface QueryOrderRsp {
+  transaction_id: string
+  out_order_no: string
+  merchant_id: string
+  merchant_uid: number
+  merchant_name: string
+  user_id: string
+  uid: number
+  amount: number
+  pay_time: string
+  trade_state: number
+  order_success_token: string
+}

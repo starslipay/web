@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDebugStore } from '@/stores/debug'
-import { LogOut, User, Banknote, ArrowRightLeft, RefreshCw, Wallet, Building, ChevronDown, X, Plus, FileText, Zap, ArrowUpFromLine, Search, Clock, AlertTriangle, ShoppingCart, ClipboardList } from 'lucide-vue-next'
+import { LogOut, User, Banknote, ArrowRightLeft, RefreshCw, Wallet, Building, ChevronDown, X, Plus, FileText, Zap, ArrowUpFromLine, Search, Clock, AlertTriangle, ShoppingCart, ClipboardList, ReceiptText } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -119,6 +119,10 @@ const goToMall = () => {
 
 const goToOrders = () => {
   router.push('/orders')
+}
+
+const goToQueryOrder = () => {
+  router.push('/query-order')
 }
 
 const goToRegister = () => {
@@ -411,6 +415,18 @@ onUnmounted(() => {
             </div>
             <h3 class="font-semibold text-gray-800">我的订单</h3>
             <p class="text-sm text-gray-500 mt-1">商城订单记录</p>
+          </button>
+
+          <button
+            @click="goToQueryOrder"
+            class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
+            style="animation-delay: 0.9s"
+          >
+            <div class="w-12 h-12 bg-gradient-to-br from-violet-500 to-violet-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <ReceiptText class="w-6 h-6 text-white" />
+            </div>
+            <h3 class="font-semibold text-gray-800">查询订单</h3>
+            <p class="text-sm text-gray-500 mt-1">按交易单号查订单</p>
           </button>
         </div>
 

@@ -34,6 +34,8 @@ import type {
   BanPayRsp,
   GetOrderInfoReq,
   GetOrderInfoRsp,
+  QueryOrderReq,
+  QueryOrderRsp,
 } from './types'
 
 export const payGateApi = {
@@ -105,5 +107,10 @@ export const payGateApi = {
 
   getOrderInfo: async (req: GetOrderInfoReq): Promise<GetOrderInfoRsp> => {
     return api.post('/api/pay_gate/get_order_info', req) as unknown as GetOrderInfoRsp
+  },
+
+  // 查单(返回order_mgr订单全部信息)
+  queryOrder: async (req: QueryOrderReq): Promise<QueryOrderRsp> => {
+    return api.post('/api/pay_gate/query_order', req) as unknown as QueryOrderRsp
   },
 }
