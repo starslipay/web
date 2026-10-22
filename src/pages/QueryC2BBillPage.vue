@@ -59,9 +59,8 @@ const formatDateTime = (dateStr: string) => {
 }
 
 const billStateMap: Record<number, { label: string; color: string; bg: string }> = {
-  1: { label: '待支付', color: 'text-yellow-700', bg: 'bg-yellow-100' },
-  2: { label: '支付成功', color: 'text-green-700', bg: 'bg-green-100' },
-  99: { label: '已关闭', color: 'text-gray-700', bg: 'bg-gray-100' },
+  1: { label: '成功', color: 'text-green-700', bg: 'bg-green-100' },
+  99: { label: '关单', color: 'text-gray-700', bg: 'bg-gray-100' },
 }
 
 const getBillStateInfo = (state: number) => {
@@ -182,8 +181,7 @@ const queryBill = async () => {
               getBillStateInfo(billInfo.state).color,
             ]"
           >
-            <CheckCircle v-if="billInfo.state === 2" class="w-3 h-3 mr-1" />
-            <Clock v-else-if="billInfo.state === 1" class="w-3 h-3 mr-1" />
+            <CheckCircle v-if="billInfo.state === 1" class="w-3 h-3 mr-1" />
             {{ getBillStateInfo(billInfo.state).label }}({{ billInfo.state }})
           </span>
         </div>

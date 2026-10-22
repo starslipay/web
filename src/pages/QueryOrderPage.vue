@@ -63,12 +63,22 @@ const formatDateTime = (dateStr: string) => {
 
 const tradeStateMap: Record<number, { label: string; color: string; bg: string }> = {
   1: { label: '待支付', color: 'text-yellow-700', bg: 'bg-yellow-100' },
-  2: { label: '支付成功', color: 'text-green-700', bg: 'bg-green-100' },
-  99: { label: '已关闭', color: 'text-gray-700', bg: 'bg-gray-100' },
+  2: { label: '成功', color: 'text-green-700', bg: 'bg-green-100' },
+  99: { label: '关闭', color: 'text-gray-700', bg: 'bg-gray-100' },
 }
 
 const getTradeStateInfo = (state: number) => {
   return tradeStateMap[state] || { label: `状态${state}`, color: 'text-gray-700', bg: 'bg-gray-100' }
+}
+
+// C2B单据状态枚举(与订单trade_state不同)
+const c2bBillStateMap: Record<number, { label: string; color: string; bg: string }> = {
+  1: { label: '成功', color: 'text-green-700', bg: 'bg-green-100' },
+  99: { label: '关单', color: 'text-gray-700', bg: 'bg-gray-100' },
+}
+
+const getC2BBillStateInfo = (state: number) => {
+  return c2bBillStateMap[state] || { label: `状态${state}`, color: 'text-gray-700', bg: 'bg-gray-100' }
 }
 
 const queryOrder = async () => {
@@ -314,13 +324,12 @@ const queryOrder = async () => {
           <span
             :class="[
               'inline-flex items-center px-2.5 py-1 rounded text-xs font-medium',
-              getTradeStateInfo(c2bInfo.state).bg,
-              getTradeStateInfo(c2bInfo.state).color,
+              getC2BBillStateInfo(c2bInfo.state).bg,
+              getC2BBillStateInfo(c2bInfo.state).color,
             ]"
           >
-            <CheckCircle v-if="c2bInfo.state === 2" class="w-3 h-3 mr-1" />
-            <Clock v-else-if="c2bInfo.state === 1" class="w-3 h-3 mr-1" />
-            {{ getTradeStateInfo(c2bInfo.state).label }}({{ c2bInfo.state }})
+            <CheckCircle v-if="c2bInfo.state === 1" class="w-3 h-3 mr-1" />
+            {{ getC2BBillStateInfo(c2bInfo.state).label }}({{ c2bInfo.state }})
           </span>
         </div>
 

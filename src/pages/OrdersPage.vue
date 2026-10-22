@@ -61,8 +61,8 @@ const formatPrice = (price: number) => {
 
 const tradeStateMap: Record<number, { label: string; color: string; bg: string }> = {
   1: { label: '待支付', color: 'text-yellow-700', bg: 'bg-yellow-100' },
-  2: { label: '支付成功', color: 'text-green-700', bg: 'bg-green-100' },
-  99: { label: '已关闭', color: 'text-gray-700', bg: 'bg-gray-100' },
+  2: { label: '成功', color: 'text-green-700', bg: 'bg-green-100' },
+  99: { label: '关闭', color: 'text-gray-700', bg: 'bg-gray-100' },
 }
 
 const getTradeStateInfo = (state: number) => {
