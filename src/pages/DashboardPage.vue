@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDebugStore } from '@/stores/debug'
-import { LogOut, User, Banknote, ArrowRightLeft, RefreshCw, Wallet, Building, ChevronDown, X, Plus, FileText, Zap, ArrowUpFromLine, Search, Clock, AlertTriangle, ShoppingCart, ClipboardList, ReceiptText } from 'lucide-vue-next'
+import { LogOut, User, Banknote, ArrowRightLeft, RefreshCw, Wallet, Building, ChevronDown, X, Plus, FileText, Zap, ArrowUpFromLine, Search, Clock, AlertTriangle, ShoppingCart, ClipboardList, ReceiptText, Building2 } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -127,6 +127,10 @@ const goToQueryOrder = () => {
 
 const goToQueryC2BBill = () => {
   router.push('/query-c2b-bill')
+}
+
+const goToAdmin = () => {
+  router.push('/admin')
 }
 
 const goToRegister = () => {
@@ -455,6 +459,18 @@ onUnmounted(() => {
               </div>
               <h3 class="font-semibold text-gray-800">查询C2B单据</h3>
               <p class="text-sm text-gray-500 mt-1">按交易单号查C2B单</p>
+            </button>
+
+            <button
+              @click="goToAdmin"
+              class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
+              style="animation-delay: 1.1s"
+            >
+              <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Building2 class="w-6 h-6 text-white" />
+              </div>
+              <h3 class="font-semibold text-gray-800">管理员</h3>
+              <p class="text-sm text-gray-500 mt-1">商户余额查询</p>
             </button>
           </div>
         </div>

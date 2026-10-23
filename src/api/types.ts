@@ -105,6 +105,20 @@ export interface GetUserFlowRsp {
   UserFlowList: UserFlow[]
 }
 
+// 查询商户余额(单个), 后端接口 /get_merchant_balance_info
+export interface GetMerchantBalanceInfoReq {
+  merchant_id: string // 商户ID
+  qry_mode: number // 查询模式: 1=从库, 2=主库(必须传1或2, 否则后端报qry_mode is invalid)
+}
+
+export interface GetMerchantBalanceInfoRsp {
+  merchant_id: string // 商户ID
+  merchant_uid: number // 商户用户UID
+  merchant_name: string // 商户名称
+  balance: number // 余额, 单位分
+  cur_type: number // 币种类型
+}
+
 export interface C2CTransferPreReq {
   buyer_user_id: string
 }
