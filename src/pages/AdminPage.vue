@@ -3,7 +3,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { payGateApi } from '@/api/pay_gate'
 import type { GetMerchantBalanceInfoRsp } from '@/api/types'
-import { ArrowLeft, RefreshCw, Building2, Wallet, Loader2, Zap } from 'lucide-vue-next'
+import { ArrowLeft, RefreshCw, Building2, Wallet, Loader2, Zap, Undo2, CheckCircle2 } from 'lucide-vue-next'
 import { useDebugStore } from '@/stores/debug'
 
 const router = useRouter()
@@ -20,6 +20,11 @@ const MERCHANT_IDS = [
 
 const loading = ref(false)
 const results = ref<MerchantBalanceRow[]>([])
+
+// 退款相关状态
+const refundTransactionId = ref('')
+const refundLoading = ref(false)
+const refundResult = ref<{ success: boolean; message: string } | null>(null)
 const toast = reactive({
   show: false,
   message: '',
@@ -95,6 +100,33 @@ const queryAllMerchants = async () => {
     showToast('查询失败: ' + (error as Error).message, 'error')
   } finally {
     loading.value = false
+  }
+}
+
+// 发起退款
+const handleRefund = async () => {
+  const tid = refundTransactionId.value.trim()
+  if (!tid) {
+    showToast('请输入交易单号', 'warning')
+    return
+  }
+  refundLoading.value = true
+  refundResult.value = null
+  try {
+    const rsp = await payGateApi.refundOrder({ transaction_id: tid })
+    refundResult.value = {
+      success: true,
+      message: `退款成功, 交易单号: ${rsp.transaction_id}`,
+    }
+    showToast('退款成功', 'success')
+  } catch (error) {
+    refundResult.value = {
+      success: false,
+      message: (error as Error).message,
+    }
+    showToast('退款失败: ' + (error as Error).message, 'error')
+  } finally {
+    refundLoading.value = false
   }
 }
 </script>
@@ -194,6 +226,46 @@ const queryAllMerchants = async () => {
                 <p class="text-xs text-red-400">{{ row.error }}</p>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 退款操作 -->
+      <div class="card p-6 mt-6 animate-slide-up" style="animation-delay: 0.1s">
+        <div class="flex items-center gap-2 mb-4">
+          <Undo2 class="w-5 h-5 text-orange-500" />
+          <h3 class="font-semibold text-gray-800">订单退款</h3>
+        </div>
+        <p class="text-sm text-gray-500 mb-4">按交易单号发起退款, 退款成功后资金原路退回买家账户</p>
+        <div class="flex gap-3">
+          <input
+            v-model="refundTransactionId"
+            type="text"
+            placeholder="请输入交易单号"
+            class="input-field font-mono flex-1"
+            @keyup.enter="handleRefund"
+          />
+          <button
+            @click="handleRefund"
+            :disabled="refundLoading || !refundTransactionId.trim()"
+            class="btn-primary flex items-center gap-2"
+          >
+            <Loader2 v-if="refundLoading" class="w-4 h-4 animate-spin" />
+            <Undo2 v-else class="w-4 h-4" />
+            {{ refundLoading ? '退款中...' : '发起退款' }}
+          </button>
+        </div>
+        <!-- 退款结果 -->
+        <div v-if="refundResult" class="mt-4">
+          <div
+            :class="[
+              'flex items-center gap-2 p-3 rounded-lg text-sm',
+              refundResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700',
+            ]"
+          >
+            <CheckCircle2 v-if="refundResult.success" class="w-4 h-4 flex-shrink-0" />
+            <span v-else class="w-4 h-4 flex-shrink-0 text-center font-bold">✕</span>
+            <span class="break-all">{{ refundResult.message }}</span>
           </div>
         </div>
       </div>

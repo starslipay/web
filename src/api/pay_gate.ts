@@ -44,6 +44,8 @@ import type {
   QueryC2BBillRsp,
   CloseOrSupplyOrderReq,
   CloseOrSupplyOrderRsp,
+  RefundOrderReq,
+  RefundOrderRsp,
 } from './types'
 
 export const payGateApi = {
@@ -138,5 +140,10 @@ export const payGateApi = {
   // 支付关单或补单
   closeOrSupplyOrder: async (req: CloseOrSupplyOrderReq): Promise<CloseOrSupplyOrderRsp> => {
     return api.post('/api/pay_gate/close_or_supply_order', req) as unknown as CloseOrSupplyOrderRsp
+  },
+
+  // 退款
+  refundOrder: async (req: RefundOrderReq): Promise<RefundOrderRsp> => {
+    return api.post('/api/pay_gate/refund_order', req) as unknown as RefundOrderRsp
   },
 }

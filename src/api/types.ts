@@ -308,3 +308,12 @@ export interface CloseOrSupplyOrderRsp {
   pay_time: string
   order_success_token: string
 }
+
+// 退款, 后端接口 /refund_order
+export interface RefundOrderReq {
+  transaction_id: string // 交易单号
+}
+
+export interface RefundOrderRsp {
+  transaction_id: string // 交易单号
+}
