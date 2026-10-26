@@ -148,7 +148,7 @@ const handleRefund = async () => {
               <Building2 class="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 class="text-xl font-bold text-white">管理员</h1>
+              <h1 class="text-xl font-bold text-white">商户管理</h1>
               <p class="text-sm text-white/70">商户余额查询</p>
             </div>
           </div>

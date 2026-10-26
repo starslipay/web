@@ -485,7 +485,7 @@ onUnmounted(() => {
               <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <Building2 class="w-6 h-6 text-white" />
               </div>
-              <h3 class="font-semibold text-gray-800">管理员</h3>
+              <h3 class="font-semibold text-gray-800">商户管理</h3>
               <p class="text-sm text-gray-500 mt-1">商户余额查询</p>
             </button>
           </div>
