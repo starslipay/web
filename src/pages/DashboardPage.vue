@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDebugStore } from '@/stores/debug'
-import { LogOut, User, Banknote, ArrowRightLeft, RefreshCw, Wallet, Building, ChevronDown, X, Plus, FileText, Zap, ArrowUpFromLine, Search, Clock, AlertTriangle, ShoppingCart, ClipboardList, ReceiptText, Building2 } from 'lucide-vue-next'
+import { LogOut, User, Banknote, ArrowRightLeft, RefreshCw, Wallet, Building, ChevronDown, X, Plus, FileText, Zap, ArrowUpFromLine, Search, Clock, AlertTriangle, ShoppingCart, ClipboardList, ReceiptText, Building2, Landmark } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -127,6 +127,10 @@ const goToQueryOrder = () => {
 
 const goToQueryC2BBill = () => {
   router.push('/query-c2b-bill')
+}
+
+const goToQueryRechargeWithdraw = () => {
+  router.push('/query-recharge-withdraw')
 }
 
 const goToAdmin = () => {
@@ -462,9 +466,21 @@ onUnmounted(() => {
             </button>
 
             <button
-              @click="goToAdmin"
+              @click="goToQueryRechargeWithdraw"
               class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
               style="animation-delay: 1.1s"
+            >
+              <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Landmark class="w-6 h-6 text-white" />
+              </div>
+              <h3 class="font-semibold text-gray-800">查询充值提现</h3>
+              <p class="text-sm text-gray-500 mt-1">按单号查充值/提现单</p>
+            </button>
+
+            <button
+              @click="goToAdmin"
+              class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
+              style="animation-delay: 1.2s"
             >
               <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <Building2 class="w-6 h-6 text-white" />

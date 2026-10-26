@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { payGateApi } from '@/api/pay_gate'
 import type { GetOrderInfoRsp } from '@/api/types'
-import { ArrowLeft, ClipboardList, ShoppingCart, RefreshCw, X, CheckCircle, Clock, Loader2, Zap, FileText, User as UserIcon, Building, Hash, Calendar, Banknote } from 'lucide-vue-next'
+import { ArrowLeft, ClipboardList, ShoppingCart, RefreshCw, X, CheckCircle, Clock, Loader2, Zap, FileText, User as UserIcon, Building, Hash, Calendar, Banknote, RotateCcw } from 'lucide-vue-next'
 import { useDebugStore } from '@/stores/debug'
 
 const router = useRouter()
@@ -62,6 +62,7 @@ const formatPrice = (price: number) => {
 const tradeStateMap: Record<number, { label: string; color: string; bg: string }> = {
   1: { label: '待支付', color: 'text-yellow-700', bg: 'bg-yellow-100' },
   2: { label: '成功', color: 'text-green-700', bg: 'bg-green-100' },
+  3: { label: '已退款', color: 'text-orange-700', bg: 'bg-orange-100' },
   99: { label: '关闭', color: 'text-gray-700', bg: 'bg-gray-100' },
 }
 
@@ -226,6 +227,7 @@ onMounted(() => {
                   ]"
                 >
                   <CheckCircle v-if="order.trade_state === 2" class="w-3 h-3 mr-1" />
+                  <RotateCcw v-else-if="order.trade_state === 3" class="w-3 h-3 mr-1" />
                   <Clock v-else-if="order.trade_state === 1" class="w-3 h-3 mr-1" />
                   {{ getTradeStateInfo(order.trade_state).label }}
                 </span>

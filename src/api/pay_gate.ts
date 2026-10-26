@@ -46,6 +46,8 @@ import type {
   CloseOrSupplyOrderRsp,
   RefundOrderReq,
   RefundOrderRsp,
+  QueryRechargeWithdrawOrderReq,
+  QueryRechargeWithdrawOrderRsp,
 } from './types'
 
 export const payGateApi = {
@@ -145,5 +147,10 @@ export const payGateApi = {
   // 退款
   refundOrder: async (req: RefundOrderReq): Promise<RefundOrderRsp> => {
     return api.post('/api/pay_gate/refund_order', req) as unknown as RefundOrderRsp
+  },
+
+  // 查询充值提现单
+  queryRechargeWithdrawOrder: async (req: QueryRechargeWithdrawOrderReq): Promise<QueryRechargeWithdrawOrderRsp> => {
+    return api.post('/api/pay_gate/query_recharge_withdraw_order', req) as unknown as QueryRechargeWithdrawOrderRsp
   },
 }

@@ -74,6 +74,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/query-recharge-withdraw',
+    name: 'query-recharge-withdraw',
+    component: () => import('@/pages/QueryRechargeWithdrawPage.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/mall',
     name: 'mall',
     component: () => import('@/pages/MallPage.vue'),

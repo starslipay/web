@@ -317,3 +317,22 @@ export interface RefundOrderReq {
 export interface RefundOrderRsp {
   transaction_id: string // 交易单号
 }
+
+// 查询充值提现单
+export interface QueryRechargeWithdrawOrderReq {
+  transaction_id: string // 充值提现单号
+}
+export interface QueryRechargeWithdrawOrderRsp {
+  transaction_id: string // 充值提现单号
+  channel_transaction_id: string // 银行渠道单号
+  user_id: string // 用户ID
+  uid: number // 用户uid
+  biz_type: number // 业务类型: 1=充值 2=提现
+  bank_type: number // 银行类型
+  amount: number // 金额, 单位分
+  cur_type: number // 币种类型
+  trade_state: number // 交易状态: 1=初始 2=成功 3=失败
+  memo: string // 备注
+  create_time: string // 创建时间
+  update_time: string // 更新时间
+}
