@@ -80,6 +80,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/trigger-refund',
+    name: 'trigger-refund',
+    component: () => import('@/pages/TriggerRefundPage.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/mall',
     name: 'mall',
     component: () => import('@/pages/MallPage.vue'),

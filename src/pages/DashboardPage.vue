@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDebugStore } from '@/stores/debug'
-import { LogOut, User, Banknote, ArrowRightLeft, RefreshCw, Wallet, Building, ChevronDown, X, Plus, FileText, Zap, ArrowUpFromLine, Search, Clock, AlertTriangle, ShoppingCart, ClipboardList, ReceiptText, Building2, Landmark } from 'lucide-vue-next'
+import { LogOut, User, Banknote, ArrowRightLeft, RefreshCw, Wallet, Building, ChevronDown, X, Plus, FileText, Zap, ArrowUpFromLine, Search, Clock, AlertTriangle, ShoppingCart, ClipboardList, ReceiptText, Building2, Landmark, Undo2 } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -135,6 +135,10 @@ const goToQueryRechargeWithdraw = () => {
 
 const goToAdmin = () => {
   router.push('/admin')
+}
+
+const goToTriggerRefund = () => {
+  router.push('/trigger-refund')
 }
 
 const goToRegister = () => {
@@ -487,6 +491,18 @@ onUnmounted(() => {
               </div>
               <h3 class="font-semibold text-gray-800">商户管理</h3>
               <p class="text-sm text-gray-500 mt-1">商户余额查询</p>
+            </button>
+
+            <button
+              @click="goToTriggerRefund"
+              class="card p-6 text-left hover:shadow-xl transition-all duration-200 hover:-translate-y-1 group animate-slide-up"
+              style="animation-delay: 1.3s"
+            >
+              <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Undo2 class="w-6 h-6 text-white" />
+              </div>
+              <h3 class="font-semibold text-gray-800">触发退款</h3>
+              <p class="text-sm text-gray-500 mt-1">按交易单号发起退款</p>
             </button>
           </div>
         </div>
